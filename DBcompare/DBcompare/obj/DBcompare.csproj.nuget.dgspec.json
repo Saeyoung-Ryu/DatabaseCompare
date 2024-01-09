@@ -1,0 +1,103 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj": {}
+  },
+  "projects": {
+    "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj",
+        "projectName": "DBcompare",
+        "projectPath": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj",
+        "packagesPath": "/Users/saeyoungryu/.nuget/packages/",
+        "outputPath": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/saeyoungryu/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "/usr/local/share/dotnet/library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "Dapper": {
+              "target": "Package",
+              "version": "[2.0.123, )"
+            },
+            "MatBlazor": {
+              "target": "Package",
+              "version": "[2.10.0, )"
+            },
+            "MySql.Data": {
+              "target": "Package",
+              "version": "[8.0.33, )"
+            },
+            "MySqlBackup.NET": {
+              "target": "Package",
+              "version": "[2.3.8, )"
+            },
+            "MySqlConnector": {
+              "target": "Package",
+              "version": "[2.2.6, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
+            },
+            "Renci.SshNet.Async": {
+              "target": "Package",
+              "version": "[1.4.0, )"
+            },
+            "SSH.NET": {
+              "target": "Package",
+              "version": "[2023.0.0, )"
+            },
+            "Syncfusion.Blazor.Buttons": {
+              "target": "Package",
+              "version": "[21.2.5, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/8.0.100/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/DBcompare
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/appsettings.Development.json
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/appsettings.json
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/DBcompare.dll
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/DBcompare.deps.json
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/DBcompare.runtimeconfig.json
+/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/bin/Release/net7.0/publish/DBcompare.pdb
