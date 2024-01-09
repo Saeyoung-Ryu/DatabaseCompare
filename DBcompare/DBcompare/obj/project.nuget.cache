@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "/4QBdU0kPxvzSZwkyBUeVLaUU46Gsjir9ELvWR62SOAtmj1mwfByWn/LxuBshje8oZ2QyZbHKa4C0VOwvazJBw==",
+  "dgSpecHash": "qif5Kzm85UVezRtly44EjW9OM984mZTU9dPZMxJ00gXZ6K61gkuXpnoyekinHsHs85Cwog+gTrOWy+PDNGYhiw==",
   "success": true,
-  "projectFilePath": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj",
+  "projectFilePath": "/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/DBcompare.csproj",
   "expectedPackageFiles": [
     "/Users/saeyoungryu/.nuget/packages/dapper/2.0.123/dapper.2.0.123.nupkg.sha512",
     "/Users/saeyoungryu/.nuget/packages/google.protobuf/3.21.9/google.protobuf.3.21.9.nupkg.sha512",

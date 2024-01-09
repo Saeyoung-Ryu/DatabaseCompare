@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj": {}
+    "/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/DBcompare.csproj": {}
   },
   "projects": {
-    "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj": {
+    "/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/DBcompare.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj",
+        "projectUniqueName": "/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/DBcompare.csproj",
         "projectName": "DBcompare",
-        "projectPath": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/DBcompare.csproj",
+        "projectPath": "/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/DBcompare.csproj",
         "packagesPath": "/Users/saeyoungryu/.nuget/packages/",
-        "outputPath": "/Users/saeyoungryu/Project/DBcompare/DBcompare/DBcompare/obj/",
+        "outputPath": "/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/saeyoungryu/.nuget/NuGet/NuGet.Config"
