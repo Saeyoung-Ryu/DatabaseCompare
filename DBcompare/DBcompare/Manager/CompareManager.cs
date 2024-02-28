@@ -7,18 +7,15 @@ namespace DBcompare.Manager;
 
 public class CompareManager
 {
-    class ConnectionInfo
+    public class ConnectionInfo
     {
         public string ConnectionString { get; set; }
         public SshClient? SshClient { get; set; }
         public ForwardedPortLocal? ForwardedPortLocal { get; set; }
     }
     
-    private static List<TableInfo> SetDifferentTablesAfterCompare(List<TableInfo> tableInfos, List<string> differentTables)
+    private static void SetDifferentTablesAfterCompare(List<TableInfo> tableInfos, List<string> differentTables)
     {
-        if (differentTables.Count == 0)
-            return tableInfos;
-        
         foreach (var differentTable in differentTables)
         {
             foreach (var tableInfo in tableInfos)
@@ -31,14 +28,12 @@ public class CompareManager
                 }
             }
         }
-        return tableInfos;
     }
 
-    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string database, List<TableInfo> tableInfos, bool compareAllTables = false)
+    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool compareAllTables = false)
     {
         string server1 = servers[0];
         string server2 = servers[1];
-        string databaseName = database;
         
         var connectionInfo1 = await GetConnectionInfoAsync(server1, databaseName);
         var connectionInfo2 = await GetConnectionInfoAsync(server2, databaseName);
@@ -50,18 +45,18 @@ public class CompareManager
             await connection2.OpenAsync();
             
             // check TABLE EXIST
-            var tableNameWithNowExisting = await CompareTablesExistAsync(server1, server2, databaseName, tableInfos, connectionInfo1, connectionInfo2);
-            tableInfos = SetDifferentTablesAfterCompare(tableInfos, tableNameWithNowExisting);
+            var tableNameWithNowExisting = await CompareTablesExistAsync(tableInfos, connection1, connection2);
+            SetDifferentTablesAfterCompare(tableInfos, tableNameWithNowExisting);
             
             // check TABLE COLUMN
-            var tableNamesWithDifferentColumns = await CompareTableColumnsAsync(server1, server2, databaseName, tableInfos, connectionInfo1, connectionInfo2);
-            tableInfos = SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentColumns);
+            var tableNamesWithDifferentColumns = await CompareTableColumnsAsync(tableInfos, connection1, connection2);
+            SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentColumns);
 
-            // check TABLE DATA
+            // check TABLE DATA. Const 테이블만 비교
             if (databaseName.Contains("Const"))
             {
-                var tableNamesWithDifferentData = await CompareTableDataAsync(server1, server2, databaseName, tableInfos, connectionInfo1, connectionInfo2);
-                tableInfos = SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentData);
+                var tableNamesWithDifferentData = await CompareTableDataAsync(tableInfos, connection1, connection2);
+                SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentData);
             }
             
             // Close SshClient, ForwardedPortLocal
@@ -130,31 +125,42 @@ public class CompareManager
         
     }
     
-    private static async Task<List<string>> CompareTablesExistAsync(string server1, string server2, string databaseName, List<TableInfo> tableInfos, ConnectionInfo connectionInfo1, ConnectionInfo connectionInfo2)
+    private static async Task<List<string>> CompareTablesExistAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
     {
         var tableNames = tableInfos.Select(e => e.tableName).ToList();
-        
-        // SshClient sshClient = null;
-        // ForwardedPortLocal forwardedPortLocal = null;
 
-        /*var connectionInfo1 = await GetConnectionInfoAsync(server1, databaseName);
-        var connectionInfo2 = await GetConnectionInfoAsync(server2, databaseName);*/
+        var server1MissingTable = await TableExistsAsync(connection1, tableNames);
+        var server2MissingTable = await TableExistsAsync(connection2, tableNames);
 
-        using (MySqlConnection connection1 = new MySqlConnection(connectionInfo1.ConnectionString))
-        using (MySqlConnection connection2 = new MySqlConnection(connectionInfo2.ConnectionString))
-        {
-            await connection1.OpenAsync();
-            await connection2.OpenAsync();
-            
-            var server1MissingTable = await TableExistsAsync(connection1, tableNames);
-            var server2MissingTable = await TableExistsAsync(connection2, tableNames);
-
-            var combinedList = server1MissingTable.Union(server2MissingTable).ToList();
+        var combinedList = server1MissingTable.Union(server2MissingTable).ToList();
                 
-            return combinedList;
-        }
+        return combinedList;
     }
 
+    public static async Task<List<string>> GetExistingTablesAsync(MySqlConnection connection, List<string> tableNames)
+    {
+        // List<string> missingTables = new List<string>();
+
+        foreach (string tableName in tableNames)
+        {
+            string query = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{connection.Database}' AND table_name = '{tableName}'";
+
+            using (MySqlCommand command = new MySqlCommand(query, connection))
+            {
+                object result = await command.ExecuteScalarAsync();
+                if (result == null)
+                    break;
+
+                long count = (long)result;
+                if (count == 0)
+                {
+                    tableNames.Remove(tableName);
+                }
+            }
+        }
+
+        return tableNames;
+    }
     private static async Task<List<string>> TableExistsAsync(MySqlConnection connection, List<string> tableNames)
     {
         List<string> missingTables = new List<string>();
@@ -180,40 +186,33 @@ public class CompareManager
         return missingTables;
     }
 
-    private static async Task<List<string>> CompareTableColumnsAsync(string server1, string server2, string databaseName, List<TableInfo> tableInfos, ConnectionInfo connectionInfo1, ConnectionInfo connectionInfo2)
+    private static async Task<List<string>> CompareTableColumnsAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
     {
         var tableNames = tableInfos.Select(e => e.tableName).ToList();
 
         List<string> differentTables = new List<string>();
 
-        using (MySqlConnection connection1 = new MySqlConnection(connectionInfo1.ConnectionString))
-        using (MySqlConnection connection2 = new MySqlConnection(connectionInfo2.ConnectionString))
+        foreach (string tableName in tableNames)
         {
-            await connection1.OpenAsync();
-            await connection2.OpenAsync();
+            List<Column> columnsServer1 = await GetTableColumnsAsync(connection1, tableName);
+            List<Column> columnsServer2 = await GetTableColumnsAsync(connection2, tableName);
 
-            foreach (string tableName in tableNames)
+            if (!AreColumnsEqual(columnsServer1, columnsServer2))
             {
-                List<Column> columnsServer1 = await GetTableColumnsAsync(connection1, tableName);
-                List<Column> columnsServer2 = await GetTableColumnsAsync(connection2, tableName);
-
-                if (!AreColumnsEqual(columnsServer1, columnsServer2))
-                {
-                    Console.WriteLine($"Name1 = {columnsServer1.First().Name}");
-                    Console.WriteLine($"DataType1 = {columnsServer1.First().DataType}");
+                Console.WriteLine($"Name1 = {columnsServer1.First().Name}");
+                Console.WriteLine($"DataType1 = {columnsServer1.First().DataType}");
                     
-                    Console.WriteLine($"Name2 = {columnsServer2.First().Name}");
-                    Console.WriteLine($"DataType2 = {columnsServer2.First().DataType}");
+                Console.WriteLine($"Name2 = {columnsServer2.First().Name}");
+                Console.WriteLine($"DataType2 = {columnsServer2.First().DataType}");
                     
-                    differentTables.Add(tableName);
-                }
+                differentTables.Add(tableName);
             }
         }
-
+        
         return differentTables;
     }
 
-    private static async Task<List<Column>> GetTableColumnsAsync(MySqlConnection connection, string tableName)
+    public static async Task<List<Column>> GetTableColumnsAsync(MySqlConnection connection, string tableName)
     {
         List<Column> columns = new List<Column>();
 
@@ -253,27 +252,20 @@ public class CompareManager
         return true;
     }
     
-    private static async Task<List<string>> CompareTableDataAsync(string server1, string server2, string databaseName, List<TableInfo> tableInfos, ConnectionInfo connectionInfo1, ConnectionInfo connectionInfo2)
+    private static async Task<List<string>> CompareTableDataAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
     {
         var tableNames = tableInfos.Select(e => e.tableName).ToList();
 
         List<string> differentTables = new List<string>();
 
-        using (MySqlConnection connection1 = new MySqlConnection(connectionInfo1.ConnectionString))
-        using (MySqlConnection connection2 = new MySqlConnection(connectionInfo2.ConnectionString))
+        foreach (string tableName in tableNames)
         {
-            await connection1.OpenAsync();
-            await connection2.OpenAsync();
+            DataTable tableServer1 = await GetTableDataAsync(connection1, tableName);
+            DataTable tableServer2 = await GetTableDataAsync(connection2, tableName);
 
-            foreach (string tableName in tableNames)
+            if (!AreTablesEqual(tableServer1, tableServer2))
             {
-                DataTable tableServer1 = await GetTableDataAsync(connection1, tableName);
-                DataTable tableServer2 = await GetTableDataAsync(connection2, tableName);
-
-                if (!AreTablesEqual(tableServer1, tableServer2))
-                {
-                    differentTables.Add(tableName);
-                }
+                differentTables.Add(tableName);
             }
         }
 
