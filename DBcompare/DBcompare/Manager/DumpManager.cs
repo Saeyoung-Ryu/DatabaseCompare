@@ -7,10 +7,12 @@ namespace DBcompare.Manager;
 
 public class DumpManager
 {
-    public static async Task DumpAsync(string databaseName, string server, List<string> tableNames)
+    public static async Task DumpAsync(string databaseName, string server, List<string> tableNames, bool isConst = true)
     {
-        string conn = $"{server};Database={databaseName}";
+        string conn = (await CompareManager.GetConnectionInfoAsync(server, databaseName)).ConnectionString;
+        // string conn = $"{server};Database={databaseName}";
         Console.WriteLine($"Conn : {conn}");
+        
         using (MySqlConnection myCon = new MySqlConnection(conn))
         {
             using (MySqlCommand cmd = new MySqlCommand())
@@ -25,12 +27,12 @@ public class DumpManager
                         foreach (var tableName in tableNames)
                         {
                             mb.ExportInfo.EnableComment = true;
-                            mb.ExportInfo.ExportEvents = true;
-                            mb.ExportInfo.ExportFunctions = true;
-                            mb.ExportInfo.ExportProcedures = true;
-                            mb.ExportInfo.ExportRows = true;
-                            mb.ExportInfo.ExportTriggers = true;
-                            mb.ExportInfo.ExportViews = true;
+                            mb.ExportInfo.ExportEvents = false;
+                            mb.ExportInfo.ExportFunctions = false;
+                            mb.ExportInfo.ExportProcedures = false;
+                            mb.ExportInfo.ExportRows = isConst;
+                            mb.ExportInfo.ExportTriggers = false;
+                            mb.ExportInfo.ExportViews = false;
                             mb.ExportInfo.AddDropTable = true;
                             mb.ExportInfo.ExportTableStructure = true;
                             mb.ExportInfo.TablesToBeExportedList = new List<string>() {tableName}; // <= 여기다가 뽑을 테이블명 정리하기
