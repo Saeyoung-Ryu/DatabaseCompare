@@ -129,9 +129,6 @@
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.DBcompare.props
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.DBcompare.props
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/staticwebassets.pack.json
-/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/Pages/HC2Compare.razor.rz.scp.css
-/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/Pages/HCCompare.razor.rz.scp.css
-/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/Pages/SBLCompare.razor.rz.scp.css
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/Shared/MainLayout.razor.rz.scp.css
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/Shared/NavMenu.razor.rz.scp.css
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/bundle/DBcompare.styles.css

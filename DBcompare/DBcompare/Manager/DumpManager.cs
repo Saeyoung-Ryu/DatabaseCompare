@@ -9,9 +9,7 @@ public class DumpManager
 {
     public static async Task DumpAsync(string databaseName, string server, List<string> tableNames, bool isConst = true)
     {
-        string conn = (await CompareManager.GetConnectionInfoAsync(server, databaseName)).ConnectionString;
-        // string conn = $"{server};Database={databaseName}";
-        Console.WriteLine($"Conn : {conn}");
+        string conn = (await DBConnectionInfo.GetConnectionInfoAsync(server, databaseName)).ConnectionString;
         
         using (MySqlConnection myCon = new MySqlConnection(conn))
         {
@@ -70,7 +68,6 @@ public class DumpManager
                         Console.WriteLine(e);
                         throw;
                     }
-                    
                 }
             }
         }

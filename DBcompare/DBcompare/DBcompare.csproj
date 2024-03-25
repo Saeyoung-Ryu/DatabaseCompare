@@ -24,10 +24,4 @@
       </None>
     </ItemGroup>
 
-    <ItemGroup>
-      <Content Update="Pages\SBLCompare.razor.css">
-        <DependentUpon>SBLCompare.razor</DependentUpon>
-      </Content>
-    </ItemGroup>
-
 </Project>

@@ -22,6 +22,10 @@ build_property._RazorSourceGeneratorDebug =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/Pages/CompareDump.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ29tcGFyZUR1bXAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/Shared/SurveyPrompt.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL1N1cnZleVByb21wdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
@@ -29,18 +33,6 @@ build_metadata.AdditionalFiles.CssScope =
 [/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
-
-[/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/Pages/HC2Compare.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSEMyQ29tcGFyZS5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = b-vcbhpafrxg
-
-[/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/Pages/HCCompare.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSENDb21wYXJlLnJhem9y
-build_metadata.AdditionalFiles.CssScope = b-y7h4k0vybx
-
-[/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/Pages/SBLCompare.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU0JMQ29tcGFyZS5yYXpvcg==
-build_metadata.AdditionalFiles.CssScope = b-51a8me4xrg
 
 [/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/Shared/MainLayout.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL01haW5MYXlvdXQucmF6b3I=

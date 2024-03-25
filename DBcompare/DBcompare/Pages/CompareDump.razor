@@ -1,0 +1,571 @@
+@page "/{ProjectName}"
+@using Microsoft.AspNetCore.Components.Routing
+@using DBcompare.Common
+@using Enum
+
+<PageTitle>@ProjectName</PageTitle>
+
+<h1 style="font-size: 48px; font-weight: bold;">@ProjectName</h1>
+<br>
+
+<div style="display: flex;">
+    <!-- Left Section -->
+    <div style="flex: 1;">
+        <!-- Content for the left section -->
+    </div>
+    
+    <!-- Right Section -->
+    <div style="position: relative;">
+        <div style="position: absolute; top: 0; right: 100px;">
+            <MatTabGroup @bind-ActiveIndex="@tabIndex" Style="width: 1200px">
+                @foreach(var tableInfo in tableListForTabDelete.Where(e => e.isDifferent))
+                {
+                    <MatTab Label="@tableInfo.tableName">
+                        <LabelContent>
+                            @tableInfo.tableName
+                        </LabelContent>
+                        <ChildContent>
+                            @if (tableInfo.DifferentType == DifferentType.TableNotExist)
+                            {
+                                <br><br>
+                                <h5>Table Not Exist</h5>
+                                <h5>@tableInfo.tableName</h5>
+                            }
+                            @if (tableInfo.DifferentType == DifferentType.ColumnDifferent)
+                            {
+                                <br><br>
+                                <h5>Column is different</h5>
+                                <h5>@tableInfo.tableName</h5>
+                                <br><br>
+                                @foreach (var column in tableInfo.Columns)
+                                {
+                                    @foreach(var columnInfo in column)
+                                    {
+                                        <h5>@columnInfo</h5>
+                                    }
+                                }
+                            }
+                            
+                            @if (tableInfo.DifferentType == DifferentType.DataDifferentWithoutIndex || tableInfo.DifferentType == DifferentType.DataDifferentWithIndex)
+                            {
+                                <br><br>
+                                <h5>Data is different</h5>
+                                <h5>Table Name : @tableInfo.tableName</h5>
+                                @if (tableInfo.PrimaryKeys != null)
+                                {
+                                    <h5>Primary Key : @string.Join(',', tableInfo.PrimaryKeys)</h5>
+                                }
+                                <br>
+                                
+                                <MatTabGroup @bind-ActiceIndex="@tabIndex1" Style="width: 1200px; color: #ffca2c">
+                                    <MatTab Label="Table1">
+                                        <br><br>
+                                        <div id="container" class style="width: 1200px; height: 600px; overflow: auto; margin-top: 20px">
+                                            <table border="1" class="table table-border table-hover w-auto">
+                                                <thead>
+                                                <tr class="table-primary">
+                                                    @foreach (var column in tableInfo.Columns[0])
+                                                    {
+                                                        <th id="fixedHeader">@column</th>
+                                                    }
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                
+                                                @foreach (var key in tableInfo.Table1ValueDiffDictionary.Keys)
+                                                {
+                                                    <tr>
+                                                        @for (int i = 0; i < tableInfo.Table1ValueDiffDictionary[key].Count; i++)
+                                                        {
+                                                            if (tableInfo.Table1ValueDiffDictionary[key][i].ToString() == tableInfo.Table2ValueDiffDictionary[key][i].ToString())
+                                                            {
+                                                                <td>@tableInfo.Table1ValueDiffDictionary[key][i].ToString()</td>
+                                                            }
+                                                            else
+                                                            {
+                                                                <td style="color: red; font-weight: bold;">@tableInfo.Table1ValueDiffDictionary[key][i].ToString()</td>
+                                                            }
+                                                        }
+                                                    </tr>
+                                                }
+                                                
+                                                @foreach (var key in tableInfo.Table1UniqueKeyDictionary.Keys)
+                                                {
+                                                    <tr style="background-color: mediumseagreen;">
+                                                        @for (int i = 0; i < tableInfo.Table1UniqueKeyDictionary[key].Count; i++)
+                                                        {
+                                                            <td style="color: black; font-weight: bold;">@tableInfo.Table1UniqueKeyDictionary[key][i].ToString()</td>
+                                                        }
+                                                    </tr>
+                                                }                                                
+
+                                                @foreach (var row in tableInfo.Table1DifferentRows.ToList())
+                                                {
+                                                    <tr>
+                                                        @foreach (var data in row)
+                                                        {
+                                                            @if (data == null)
+                                                            {
+                                                                <td>Null</td>
+                                                            }
+                                                            else
+                                                            {
+                                                                <td>@data.ToString()</td>
+                                                            }
+                                                        }
+                                                    </tr>
+                                                }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </MatTab>
+        
+                                    <MatTab Label="Table2">
+                                        <br><br>
+                                        <div id="container" class style="width: 1200px; height: 600px; overflow: auto; margin-top: 20px">
+                                            <table border="1" class="table table-border table-hover w-auto">
+                                                <thead>
+                                                <tr class="table-primary">
+                                                    @foreach (var column in tableInfo.Columns[0])
+                                                    {
+                                                        <th id="fixedHeader">@column</th>
+                                                    }
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                
+                                                @foreach (var key in tableInfo.Table2ValueDiffDictionary.Keys)
+                                                {
+                                                    <tr>
+                                                        @for (int i = 0; i < tableInfo.Table2ValueDiffDictionary[key].Count; i++)
+                                                        {
+                                                            if (tableInfo.Table1ValueDiffDictionary[key][i].ToString() == tableInfo.Table2ValueDiffDictionary[key][i].ToString())
+                                                            {
+                                                                <td>@tableInfo.Table2ValueDiffDictionary[key][i].ToString()</td>
+                                                            }
+                                                            else
+                                                            {
+                                                                <td style="color: red; font-weight: bold;">@tableInfo.Table2ValueDiffDictionary[key][i].ToString()</td>
+                                                            }
+                                                        }
+                                                    </tr>
+                                                }
+                                                
+                                                @foreach (var key in tableInfo.Table2UniqueKeyDictionary.Keys)
+                                                {
+                                                    <tr style="background-color: mediumseagreen;">
+                                                        @for (int i = 0; i < tableInfo.Table2UniqueKeyDictionary[key].Count; i++)
+                                                        {
+                                                            <td style="color: black; font-weight: bold;">@tableInfo.Table2UniqueKeyDictionary[key][i].ToString()</td>
+                                                        }
+                                                    </tr>
+                                                }                                                
+
+                                                @foreach (var row in tableInfo.Table2DifferentRows.ToList())
+                                                {
+                                                    <tr>
+                                                        @foreach (var data in row)
+                                                        {
+                                                            @if (data == null)
+                                                            {
+                                                                <td>Null</td>
+                                                            }
+                                                            else
+                                                            {
+                                                                <td>@data.ToString()</td>
+                                                            }
+                                                        }
+                                                    </tr>
+                                                }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </MatTab>
+                                    
+                                </MatTabGroup>
+                                
+                                
+                                
+                                
+                            }
+                        </ChildContent>
+                        
+                        
+                    </MatTab>
+                }
+            </MatTabGroup>
+        </div>
+        <!-- Content for the right section -->
+    </div>
+</div>
+
+<div class="horizontal-container">
+    <h3><span style="color: blue; font-weight: bold;">Step1)</span> 비교할 서버2개를 선택하세요.</h3>
+
+</div>
+<div>
+    @foreach (var server in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
+    {
+        var labelContent = $"{server}";
+        <MatCheckbox @bind-Value="@serverCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
+    }
+</div>
+
+
+
+@if (CheckIfTwoIsSelected())
+{
+    <div>
+        <button type="submit" class="btn btn-success" style="width: 80px" @onclick="SelectServerBtn" disabled="@showDatabaseSelect">선택</button>
+    </div>
+}
+
+@if (showDatabaseSelect)
+{
+    <br><br>
+    <div>
+        <div class="horizontal-container">
+            <h3><span style="color: blue; font-weight: bold;">Step2)</span> 비교할 데이터베이스를 선택하세요.</h3>
+        </div>
+    </div>
+    <div>
+        <select class="form-select" style="width: 300px" @onchange="(e) => compareDatabaseName = e.Value.ToString()" disabled="@showTableSelect">
+            @foreach (var dbName in ServerInfo.Instance.FindDatabases(ProjectName))
+            {
+                <option value="@dbName" selected="@(dbName == compareDatabaseName)">@dbName</option>
+            }
+        </select>
+        
+        <button type="submit" class="btn btn-success" style="width: 80px" @onclick="SelectDatabaseBtn" disabled="@showTableSelect">선택</button>
+    </div>
+}
+
+@if (showTableSelect)
+{
+    <br><br>
+    <div>
+        <div class="horizontal-container">
+            <h3><span style="color: blue; font-weight: bold;">Step3)</span> 비교할 테이블을 입력하세요.</h3>
+            <MatCheckbox @bind-Value="@compareRow" Label="Row 데이터 비교"></MatCheckbox>
+        </div>
+    </div>
+    <div>
+        <input type="text" size="30" @bind="@tableToAdd">
+        <button type="submit" class="btn btn-primary" style="width: 80px" @onclick="AddTableList">추가</button>
+        @*<button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync(true))">전체 비교</button>*@
+    </div>
+    
+    @if (!isLoading)
+    {
+        @foreach (var tableToAdd in tableList)
+        {
+            <div style="display: flex;">
+                <h5 id="Text1Style">@tableToAdd.tableName </h5>
+                @if (doCompare)
+                {
+                    if (tableToAdd.isDifferent)
+                    {
+                        <MatIcon class="mat-icon-error">error</MatIcon>
+                        if (tableToAdd.DifferentType == DifferentType.TableNotExist)
+                        {
+                            <h>Table not exist</h>
+                        }
+                        if (tableToAdd.DifferentType == DifferentType.ColumnDifferent)
+                        {
+                            <h>Column is different</h>
+                        }
+                        if (tableToAdd.DifferentType == DifferentType.DataDifferentWithIndex || tableToAdd.DifferentType == DifferentType.DataDifferentWithoutIndex)
+                        {
+                            <h>Data is different</h>
+                        }
+                    }
+                    else
+                    {
+                        <MatIcon class="mat-icon-confirm">check</MatIcon>
+                    }
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Large" />
+    }
+    
+    @if (tableList.Count > 0)
+    {
+        <div>
+            <button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync(false))">비교하기</button>
+            @if (doCompare)
+            {
+                <button type="submit" class="btn btn-info" style="width: 80px" @onclick="DumpBtn" disabled="@doDump">덤프</button>
+            }
+        </div>
+    }
+    
+    @if (doDump)
+    {
+        <br><br>
+        <div class="horizontal-container">
+            <h3><span style="color: blue; font-weight: bold;">Step4)</span> 덤프 대상 서버를 선택하세요.</h3>
+        </div>
+        <div>
+            @foreach (var server in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
+            {
+                var labelContent = $"{server}"; // Construct the label content here
+
+                <MatCheckbox @bind-Value="@dumpCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
+            }
+        </div>
+        
+        @if (CheckIfOneIsSelected())
+        {
+            if(isDumpLoading)
+            {
+                <MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Large" />
+            }
+            else
+            {
+                if (!finishedDump)
+                {
+                    <div>
+                        <button type="submit" class="btn btn-success" @onclick="DumpAsyncBtn">덤프 시작</button>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <button type="submit" class="btn btn-warning" @onclick="DumpAsyncBtn">다시 덤프</button>
+                    </div>
+                }
+            }
+        }
+    }
+    
+}
+
+@code {
+    [Parameter]
+    public string ProjectName { get; set; }
+    
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        ResetObjects();
+    }
+
+    private void ResetObjects()
+    {
+        ResetTableList();
+    }
+}
+
+@code
+{
+    int tabIndex = 0;
+    int tabIndex1 = 0;
+
+    Dictionary<string, bool> serverCheckedDictionary = new Dictionary<string, bool>();
+    Dictionary<string, bool> dumpCheckedDictionary = new Dictionary<string, bool>();
+
+    bool compareRow = true;
+
+    bool showDatabaseSelect = false;
+    bool showTableSelect = false;
+    bool doCompare = false;
+    bool doDump = false;
+    bool isLoading = false;
+    bool isDumpLoading = false;
+    bool finishedDump = false;
+
+    string compareDatabaseName = "";
+    string tableToAdd = "";
+
+    List<TableInfo> tableList = new List<TableInfo>();
+    
+    List<TableInfo> tableListForTabDelete = new List<TableInfo>();
+
+    private bool CheckIfTwoIsSelected()
+    {
+        int count = 0;
+        
+        foreach (var value in serverCheckedDictionary.Values)
+        {
+            if (value == true)
+                count++;
+        }
+
+        return count == 2;
+    }
+
+    private bool CheckIfOneIsSelected()
+    {
+        int count = 0;
+        
+        foreach (var value in dumpCheckedDictionary.Values)
+        {
+            if (value == true)
+                count++;
+        }
+
+        return count == 1;
+    }
+}
+
+@code
+{
+    private void SelectServerBtn()
+    {
+        showDatabaseSelect = true;
+    }
+
+    private void SelectDatabaseBtn()
+    {
+        showTableSelect = true;
+    }
+
+    private void AddTableList()
+    {
+        if (tableToAdd != String.Empty)
+        {
+            TableInfo tableInfo = new TableInfo();
+
+            if (!tableToAdd.StartsWith("tbl"))
+                tableToAdd = "tbl" + tableToAdd;
+
+            if(tableList.Select(e => e.tableName).ToList().Contains(tableToAdd))
+                return;
+            
+            tableInfo.tableName = tableToAdd;
+
+            tableList.Add(tableInfo);
+        }
+        tableToAdd = String.Empty;
+    }
+
+    private void ResetTableInfo()
+    {
+        foreach (var tableInfo in tableList)
+        {
+            tableInfo.isDifferent = false;
+            tableInfo.DifferentType = DifferentType.None;
+            tableInfo.PrimaryKeys = new List<string>();
+            
+            tableInfo.Columns = new List<string>[2];
+            tableInfo.Table1UniqueKeyDictionary = new Dictionary<string, List<object>>();
+            tableInfo.Table2UniqueKeyDictionary = new Dictionary<string, List<object>>();
+            tableInfo.Table1ValueDiffDictionary = new Dictionary<string, List<object>>();
+            tableInfo.Table2ValueDiffDictionary = new Dictionary<string, List<object>>();
+            tableInfo.Table1DifferentRows = new List<List<object?>>();
+            tableInfo.Table2DifferentRows = new List<List<object?>>();
+        }
+    }
+
+    private void ResetTableList()
+    {
+        tabIndex = 0;
+        tabIndex1 = 0;
+
+        serverCheckedDictionary = new Dictionary<string, bool>();
+        dumpCheckedDictionary = new Dictionary<string, bool>();
+        
+        foreach (var projectName in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
+        {
+            serverCheckedDictionary.Add(projectName, false);
+            dumpCheckedDictionary.Add(projectName, false);
+        }
+
+        showDatabaseSelect = false;
+        showTableSelect = false;
+        doCompare = false;
+        compareRow = true;
+        doDump = false;
+        isLoading = false;
+        isDumpLoading = false;
+        finishedDump = false;
+
+        compareDatabaseName = "";
+        tableToAdd = "";
+        tableList = new List<TableInfo>();
+        tableListForTabDelete = new List<TableInfo>();
+    }
+
+    private async Task StartCompareBtnAsync(bool compareAllTables)
+    {
+        ResetTableInfo();
+        
+        List<string> servers = new List<string>();
+        string database = compareDatabaseName;
+        List<string> tables = new List<string>();
+
+        foreach (var key in serverCheckedDictionary.Keys)
+        {
+            if (serverCheckedDictionary[key])
+                servers.Add(ServerInfo.Instance.ConnectionStrings[ProjectName][key]);
+        }
+
+        isLoading = true;
+        
+        if (database == string.Empty)
+            database = ServerInfo.Instance.Databases[ProjectName][0];
+        
+        var compareResult = await CompareManager.CompareAsync(servers, database, tableList, compareRow);
+        tableList = compareResult;
+        tableListForTabDelete = compareResult.Select(e => e).ToList();
+        
+        doCompare = true;
+        isLoading = false;
+    }
+
+    private void DumpBtn()
+    {
+        doDump = true;
+    }
+
+    private async Task DumpAsyncBtn()
+    {
+        isDumpLoading = true;
+        
+        string server = String.Empty;
+        string database = compareDatabaseName;
+        List<string> tables = new List<string>();
+        
+        foreach (var key in dumpCheckedDictionary.Keys)
+        {
+            if (dumpCheckedDictionary[key])
+                server = ServerInfo.Instance.ConnectionStrings[ProjectName][key];
+        }
+        
+        if (database == string.Empty)
+            database = ServerInfo.Instance.Databases[ProjectName][0];
+        
+        await DumpManager.DumpAsync(database, server, tableList.Where(e => e.isDifferent).Select(e => e.tableName).ToList(), database == "HomerunClashConst");
+        
+        isDumpLoading = false;
+        finishedDump = true;
+    }
+}
+
+@code
+{
+    void CloseTab(string tableName)
+    {
+        tableListForTabDelete = tableListForTabDelete.Where(e => e.tableName != tableName).ToList();
+    }
+}
+
+@code
+{
+    protected override Task OnInitializedAsync()
+    {
+        Console.WriteLine("Initialized");
+
+        foreach (var projectName in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
+        {
+            serverCheckedDictionary.Add(projectName, false);
+            dumpCheckedDictionary.Add(projectName, false);
+        }
+        
+        return base.OnInitializedAsync();
+    }
+}

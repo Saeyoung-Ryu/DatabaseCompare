@@ -1,5 +1,6 @@
 using System.Data;
 using System.Diagnostics;
+using Dapper;
 using DBcompare.Common;
 using Enum;
 using MySqlConnector;
@@ -9,14 +10,91 @@ namespace DBcompare.Manager;
 
 public class CompareManager
 {
-    public class ConnectionInfo
+    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow)
     {
-        public string ConnectionString { get; set; }
-        public SshClient? SshClient { get; set; }
-        public ForwardedPortLocal? ForwardedPortLocal { get; set; }
+        string server1 = servers[0];
+        string server2 = servers[1];
+        
+        var connectionInfo1 = await DBConnectionInfo.GetConnectionInfoAsync(server1, databaseName);
+        var connectionInfo2 = await DBConnectionInfo.GetConnectionInfoAsync(server2, databaseName);
+        
+        if (connectionInfo1 == null || connectionInfo2 == null)
+            return new List<TableInfo>();
+        
+        try
+        {
+            using (MySqlConnection connection1 = connectionInfo1.MySqlConnection ?? new MySqlConnection(connectionInfo1.ConnectionString))
+            using (MySqlConnection connection2 = connectionInfo2.MySqlConnection ?? new MySqlConnection(connectionInfo2.ConnectionString))
+            {
+                if (connection1.State != ConnectionState.Open)
+                    await connection1.OpenAsync();
+                
+                if (connection2.State != ConnectionState.Open)
+                    await connection2.OpenAsync();
+
+                // check TABLE EXIST
+                var tableNameWithNowExisting = await CompareTablesExistAsync(tableInfos, connection1, connection2);
+                SetDifferentTablesAfterCompare(tableInfos, tableNameWithNowExisting, DifferentType.TableNotExist);
+
+                // check TABLE COLUMN
+                var tableNamesWithDifferentColumns = await CompareTableColumnsAsync(tableInfos.Where(e => e.DifferentType == DifferentType.None).ToList(), connection1, connection2);
+                SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentColumns, DifferentType.ColumnDifferent);
+
+                // check TABLE DATA. Const 테이블만 비교
+                if (checkRow)
+                {
+                    var tableNamesWithDifferentData = await CompareTableDataAsync(
+                        tableInfos.Where(e => e.DifferentType == DifferentType.None).ToList(), connection1,
+                        connection2);
+                    SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentData);
+                }
+
+                DateTime time = DateTime.Now;
+                using (MySqlConnection connection = new MySqlConnection(DumpInfo.Instance.DumpLogSaveServerAddress))
+                {
+                    await connection.OpenAsync();
+                    foreach (var tableInfo in tableInfos)
+                    {
+                        int isDifferent = (tableInfo.DifferentType != DifferentType.None ? 1 : 0);
+                        string[] connArray1 = server1.Split(new char[] {';'});
+                        string[] connArray2 = server2.Split(new char[] {';'});
+                        await connection.ExecuteAsync(
+                            $"INSERT INTO compareLog (`connectionString1`, `connectionString2`, `tableName`, `isDifferent`, `time`)" +
+                            $" VALUES ('{connArray1[0]}', '{connArray2[0]}', '{tableInfo.tableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
+                    }
+                }
+
+                return tableInfos;
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
+        finally
+        {
+            if (connectionInfo1.MySqlConnection != null)
+                await connectionInfo1.MySqlConnection.DisposeAsync();
+            
+            if (connectionInfo2.MySqlConnection != null)
+                await connectionInfo2.MySqlConnection.DisposeAsync();
+            
+            if (connectionInfo1.ForwardedPortLocal != null)
+                connectionInfo1.ForwardedPortLocal.Dispose();
+            
+            if (connectionInfo1.SshClient != null)
+                connectionInfo1.SshClient.Dispose();
+            
+            if (connectionInfo2.ForwardedPortLocal != null)
+                connectionInfo2.ForwardedPortLocal.Dispose();
+            
+            if (connectionInfo2.SshClient != null)
+                connectionInfo2.SshClient.Dispose();
+        }
     }
     
-    private static void SetDifferentTablesAfterCompare(List<TableInfo> tableInfos, List<string> differentTables, DifferentType differentType)
+    private static void SetDifferentTablesAfterCompare(List<TableInfo> tableInfos, List<string> differentTables, DifferentType differentType = DifferentType.None)
     {
         foreach (var differentTable in differentTables)
         {
@@ -26,123 +104,14 @@ public class CompareManager
                 {
                     Console.WriteLine($"Different Table: {differentTable}");
                     tableInfo.isDifferent = true;
-                    tableInfo.DifferentType = differentType;
+                    
+                    if (differentType != DifferentType.None)
+                        tableInfo.DifferentType = differentType;
+                    
                     break;
                 }
             }
         }
-    }
-
-    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool compareAllTables = false)
-    {
-        Stopwatch stopwatch = new Stopwatch();
-        
-        string server1 = servers[0];
-        string server2 = servers[1];
-        
-        var connectionInfo1 = await GetConnectionInfoAsync(server1, databaseName);
-        var connectionInfo2 = await GetConnectionInfoAsync(server2, databaseName);
-        
-        using (MySqlConnection connection1 = new MySqlConnection(connectionInfo1.ConnectionString))
-        using (MySqlConnection connection2 = new MySqlConnection(connectionInfo2.ConnectionString))
-        {
-            await connection1.OpenAsync();
-            await connection2.OpenAsync();
-            
-            // check TABLE EXIST
-            stopwatch.Start();
-            var tableNameWithNowExisting = await CompareTablesExistAsync(tableInfos, connection1, connection2);
-            SetDifferentTablesAfterCompare(tableInfos, tableNameWithNowExisting, DifferentType.TableNotExist);
-            stopwatch.Stop();
-            TimeSpan elapsedTime1 = stopwatch.Elapsed;
-            Console.WriteLine("Elapsed Time1: " + elapsedTime1);
-            stopwatch.Reset();
-            
-            // check TABLE COLUMN
-            stopwatch.Start();
-            var tableNamesWithDifferentColumns = await CompareTableColumnsAsync(tableInfos.Where(e => e.DifferentType == DifferentType.None).ToList(), connection1, connection2);
-            SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentColumns, DifferentType.ColumnDifferent);
-            stopwatch.Stop();
-            TimeSpan elapsedTime2 = stopwatch.Elapsed;
-            Console.WriteLine("Elapsed Time2: " + elapsedTime2);
-            stopwatch.Reset();
-
-            // check TABLE DATA. Const 테이블만 비교
-            if (databaseName.Contains("Const"))
-            {
-                stopwatch.Start();
-                var tableNamesWithDifferentData = await CompareTableDataAsync(tableInfos.Where(e => e.DifferentType == DifferentType.None).ToList(), connection1, connection2);
-                SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentData, DifferentType.DataDifferent);
-                stopwatch.Stop();
-                TimeSpan elapsedTime3 = stopwatch.Elapsed;
-                Console.WriteLine("Elapsed Time3: " + elapsedTime3);
-                stopwatch.Reset();
-            }
-            
-            // Close SshClient, ForwardedPortLocal
-            /*if (connectionInfo1.SshClient != null && connectionInfo1.ForwardedPortLocal != null)
-            {
-                connectionInfo1.SshClient?.Dispose();
-                connectionInfo2.ForwardedPortLocal?.Dispose();
-                Console.WriteLine("connectionInfo1 Disposed!!");
-            }
-            
-            if (connectionInfo2.SshClient != null && connectionInfo2.ForwardedPortLocal != null)
-            {
-                connectionInfo1.SshClient?.Dispose();
-                connectionInfo2.ForwardedPortLocal?.Dispose();
-                Console.WriteLine("connectionInfo2 Disposed!!");
-            }*/
-
-            return tableInfos;
-        }
-    }
-
-    public static async Task<ConnectionInfo> GetConnectionInfoAsync(string server, string databaseName)
-    {
-        try
-        {
-            SshClient? sshClient = null;
-            ForwardedPortLocal? forwardedPortLocal = null;
-            
-            string connectionString = String.Empty;
-
-            if (!server.Contains("Pwd")) // ssh tunnel 사용중 (Live)
-            {
-                sshClient = new SshClient(ServerInfo.Instance.SshHost, 
-                    int.Parse(ServerInfo.Instance.SshPort), 
-                    ServerInfo.Instance.SshUserName, ServerInfo.PrivateKeyFileArray);
-            
-                await sshClient.ConnectAsync(CancellationToken.None); // 닫아주기
-
-                if (sshClient.IsConnected)
-                {
-                    forwardedPortLocal = new ForwardedPortLocal("localhost", 0, server, (uint)int.Parse(ServerInfo.Instance.MysqlPort));
-                    sshClient.AddForwardedPort(forwardedPortLocal);
-                    forwardedPortLocal.Start(); // 닫아주기
-                    connectionString = $"Server=localhost;Port={forwardedPortLocal.BoundPort};Database={databaseName};Uid={ServerInfo.Instance.MySqlUserName};Pwd={ServerInfo.Instance.MySqlPassword};";
-                }
-            }
-            else
-            {
-                connectionString = $"{server};database={databaseName}";
-            }
-
-            ConnectionInfo connectionInfo = new ConnectionInfo()
-            {
-                ConnectionString = connectionString,
-                SshClient = sshClient,
-                ForwardedPortLocal = forwardedPortLocal
-            };
-            
-            return connectionInfo;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-            throw;
-        }
-        
     }
     
     private static async Task<List<string>> CompareTablesExistAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
@@ -157,7 +126,7 @@ public class CompareManager
         return combinedList;
     }
 
-    public static async Task<List<string>> GetExistingTablesAsync(MySqlConnection connection, List<string> tableNames)
+    private static async Task<List<string>> GetExistingTablesAsync(MySqlConnection connection, List<string> tableNames)
     {
         // List<string> missingTables = new List<string>();
 
@@ -230,7 +199,7 @@ public class CompareManager
         return differentTables;
     }
 
-    public static async Task<List<Column>> GetTableColumnsAsync(MySqlConnection connection, string tableName)
+    private static async Task<List<Column>> GetTableColumnsAsync(MySqlConnection connection, string tableName)
     {
         List<Column> columns = new List<Column>();
 
@@ -297,6 +266,49 @@ public class CompareManager
             return (false);
         }
     }
+
+    private static List<string> ForceFindPrimaryKeyColumnNames(TableInfo tableInfo, DataTable dataTable1, DataTable dataTable2)
+    {
+        int order = 1;
+        
+        HashSet<string> hashSet = new HashSet<string>();
+        
+        for (int i = 0; i < dataTable1.Rows.Count; i++)
+        {
+            string primaryKey = string.Empty;
+            
+            for (int j = 0; j < order; j++)
+            {
+                var value = dataTable1.Rows[i].ItemArray[j].ToString();
+                
+                if (j == 0)
+                    primaryKey +=  dataTable1.Rows[i].ItemArray[j].ToString();
+                else
+                    primaryKey += $",{value}";
+
+                bool result = true;
+                
+                if (j == order - 1)
+                    result = hashSet.Add(primaryKey);
+
+                if (result == false) // Primary Key 불가능
+                {
+                    hashSet.Clear();
+                    order++;
+                    i = -1;
+                    break;
+                }
+            }
+        }
+
+        List<string> primaryKeyColumnNames = new List<string>();
+        for (int i = 0; i < order; i++)
+        {
+            primaryKeyColumnNames.Add(dataTable1.Columns[i].ColumnName);
+        }
+        
+        return primaryKeyColumnNames;
+    }
     
     private static async Task<List<string>> CompareTableDataAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
     {
@@ -306,14 +318,47 @@ public class CompareManager
 
         foreach (var tableInfo in tableInfos)
         {
-            DataTable tableServer1 = await GetTableDataAsync(connection1, tableInfo.tableName);
-            DataTable tableServer2 = await GetTableDataAsync(connection2, tableInfo.tableName);
+            var tableDictionaryServer1 = await GetTableDataDictionaryAsync(connection1, tableInfo.tableName, tableInfo);
+            var tableDictionaryServer2 = await GetTableDataDictionaryAsync(connection2, tableInfo.tableName, tableInfo);
 
-            if (!AreTablesEqual(tableServer1, tableServer2, tableInfo))
+            if (tableDictionaryServer1 != null && tableDictionaryServer2 != null && tableDictionaryServer1.Keys.Count > 0 && tableDictionaryServer2.Keys.Count > 0)
             {
-                tableInfo.isDifferent = true;
-                tableInfo.DifferentType = DifferentType.DataDifferent;
-                differentTables.Add(tableInfo.tableName);
+                if (!AreTablesEqual(tableDictionaryServer1, tableDictionaryServer2, tableInfo))
+                {
+                    tableInfo.isDifferent = true;
+                    tableInfo.DifferentType = DifferentType.DataDifferentWithIndex;
+                    differentTables.Add(tableInfo.tableName);
+                }
+            }
+            else
+            {
+                DataTable tableServer1 = await GetTableDataAsync(connection1, tableInfo.tableName);
+                DataTable tableServer2 = await GetTableDataAsync(connection2, tableInfo.tableName);
+                
+                var forceFindPrimaryKey = ForceFindPrimaryKeyColumnNames(tableInfo, tableServer1, tableServer2);
+
+                if (forceFindPrimaryKey == null || forceFindPrimaryKey.Count == 0)
+                {
+                    // 강제로 primary Key 세팅 실패했을때
+                    if (!AreTablesEqual(tableServer1, tableServer2, tableInfo))
+                    {
+                        tableInfo.isDifferent = true;
+                        tableInfo.DifferentType = DifferentType.DataDifferentWithoutIndex;
+                        differentTables.Add(tableInfo.tableName);
+                    }
+                }
+                else
+                {
+                    var forceTableDictionaryServer1 = await GetTableDataDictionaryAsync(connection1, tableInfo.tableName, tableInfo, forceFindPrimaryKey);
+                    var forceTableDictionaryServer2 = await GetTableDataDictionaryAsync(connection2, tableInfo.tableName, tableInfo, forceFindPrimaryKey);
+                    
+                    if (!AreTablesEqual(forceTableDictionaryServer1, forceTableDictionaryServer2, tableInfo))
+                    {
+                        tableInfo.isDifferent = true;
+                        tableInfo.DifferentType = DifferentType.DataDifferentWithIndex;
+                        differentTables.Add(tableInfo.tableName);
+                    }
+                }
             }
         }
 
@@ -334,11 +379,169 @@ public class CompareManager
             }
         }
     }
+    
+    private static async Task<Dictionary<string, List<object>>> GetTableDataDictionaryAsync(MySqlConnection connection, string tableName, TableInfo tableInfo, List<string> columnNames = null)
+    {
+        Dictionary<string, List<object>> rowsDictionary = new Dictionary<string, List<object>>();
+        List<string> primaryKeyColumnNames = null;
+        
+        // Get the primary key column names
+        if (columnNames == null)
+            primaryKeyColumnNames = GetPrimaryKeyColumnNames(connection, tableName);
+        else
+            primaryKeyColumnNames = columnNames;    
+        
+        if (primaryKeyColumnNames == null || primaryKeyColumnNames.Count == 0)
+            return null;
+        
+        tableInfo.PrimaryKeys = primaryKeyColumnNames;
 
-    public class MyDataTable
+        string query = $"SELECT * FROM {tableName}";
+
+        using (MySqlCommand command = new MySqlCommand(query, connection))
+        {
+            using (MySqlDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    // string indexColumnValue = string.Empty;
+                    List<string> indexColumnValues = new List<string>();
+
+                    foreach (var columnName in primaryKeyColumnNames)
+                    {
+                        object columnValue = reader[columnName];
+                        indexColumnValues.Add(columnValue.ToString());
+                    }
+
+                    List<object> rowData = new List<object>();
+
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        string columnName = reader.GetName(i);
+                        // if (!primaryKeyColumnNames.Contains(columnName))
+                        {
+                            object columnValue = reader.GetValue(i);
+                            rowData.Add(columnValue);
+                        }
+                    }
+
+                    rowsDictionary.Add(string.Join(',', indexColumnValues), rowData);
+                }
+            }
+        }
+
+        return rowsDictionary;
+    }
+    
+    private static List<string> GetPrimaryKeyColumnNames(MySqlConnection connection, string tableName)
+    {
+        List<string> primaryKeyColumnNames = new List<string>();
+
+        string query = $@"
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = '{connection.Database}'
+          AND TABLE_NAME = '{tableName}'
+          AND CONSTRAINT_NAME = 'PRIMARY'";
+
+        using (MySqlCommand command = new MySqlCommand(query, connection))
+        {
+            using (MySqlDataReader reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    string columnName = reader["COLUMN_NAME"].ToString();
+                    primaryKeyColumnNames.Add(columnName);
+                }
+            }
+        }
+
+        return primaryKeyColumnNames;
+    }
+
+    class MyDataTable
     {
         DataRowCollection row;
         bool isRowEqual = false;
+    }
+
+    private static bool AreTablesEqual(Dictionary<string, List<object>> table1, Dictionary<string, List<object>> table2, TableInfo tableInfo)
+    {
+        bool isEqual = true;
+        
+        var keyListInfos = GetKeyListInfos(table1.Keys.ToList(), table2.Keys.ToList());
+
+        if (keyListInfos.Table1UniqueKeys.Count > 0)
+        {
+            tableInfo.Table1UniqueKeyDictionary = FilterTable(table1, keyListInfos.Table1UniqueKeys);
+            isEqual = false;
+        }
+        
+        if (keyListInfos.Table2UniqueKeys.Count > 0)
+        {
+            tableInfo.Table2UniqueKeyDictionary = FilterTable(table2, keyListInfos.Table2UniqueKeys);
+            isEqual = false;
+        }
+
+        if (keyListInfos.DuplicatedKeys.Count > 0)
+        {
+            // 각 데이터들 비교하기, 값이 다른게 있으면 tableInfo 에 넣어주기
+            foreach (var duplicatedKey in keyListInfos.DuplicatedKeys)
+            {
+                var columnCount = tableInfo.Columns[0].Count;
+
+                for (int i = 0; i < columnCount; i++)
+                {
+                    if (table1[duplicatedKey][i].ToString() != table2[duplicatedKey][i].ToString())
+                    {
+                        tableInfo.Table1ValueDiffDictionary.Add(duplicatedKey, table1[duplicatedKey]);
+                        tableInfo.Table2ValueDiffDictionary.Add(duplicatedKey, table2[duplicatedKey]);
+                        isEqual = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return isEqual;
+    }
+    
+    private static Dictionary<string, List<object>> FilterTable(Dictionary<string, List<object>> table, List<string> keys)
+    {
+        // Use LINQ to filter the dictionary based on keys in the list
+        return table.Where(kvp => keys.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+    }
+
+    private static (List<string> DuplicatedKeys, List<string> Table1UniqueKeys, List<string> Table2UniqueKeys) GetKeyListInfos(List<string> table1Keys, List<string> table2Keys)
+    {
+        HashSet<string> hashSet = new HashSet<string>();
+        
+        List<string> table1UniqueKeys = new List<string>();
+        List<string> table2UniqueKeys = new List<string>();
+        List<string> duplicateKeys = new List<string>();
+
+        foreach (var key in table1Keys)
+        {
+            hashSet.Add(key);
+        }
+
+        foreach (var key in table2Keys)
+        {
+            var result = hashSet.Add(key);
+
+            if (result == false)
+            {
+                hashSet.Remove(key);
+                duplicateKeys.Add(key);
+            }
+            else
+            {
+                hashSet.Remove(key);
+                table2UniqueKeys.Add(key);
+            }
+        }
+
+        return (duplicateKeys, hashSet.ToList(), table2UniqueKeys);
     }
     
     private static bool AreTablesEqual(DataTable table1, DataTable table2, TableInfo tableInfo)
