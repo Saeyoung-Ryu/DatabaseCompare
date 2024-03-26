@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.Extensions.Primitives;
 using MySqlConnector;
 using Renci.SshNet;
 
@@ -12,15 +14,28 @@ public class DBConnectionInfo
     
     public static async Task<DBConnectionInfo?> GetConnectionInfoAsync(string server, string databaseName)
     {
-        string connectionString = String.Empty;
+        string connectionString = string.Empty;
         DBConnectionInfo connectionInfo = null;
         SshClient? sshClient = null;
         ForwardedPortLocal? forwardedPortLocal = null;
         
         try
         {
-            connectionString = $"server={server};Port={ServerInfo.Instance.MySqlPort};Uid={ServerInfo.Instance.MySqlUserName};Pwd={ServerInfo.Instance.MySqlPassword};database={databaseName}";
+            StringBuilder connectionStringBuilder = new StringBuilder();
 
+            connectionStringBuilder.Append($"server={server};");
+            
+            if (ServerInfo.Instance.MySqlPort != string.Empty)
+                connectionStringBuilder.Append($"Port={ServerInfo.Instance.MySqlPort};");
+            if (ServerInfo.Instance.MySqlUserName != string.Empty)
+                connectionStringBuilder.Append($"Uid={ServerInfo.Instance.MySqlUserName};");
+            if (ServerInfo.Instance.MySqlPassword != string.Empty)
+                connectionStringBuilder.Append($"Pwd={ServerInfo.Instance.MySqlPassword};");
+
+            connectionStringBuilder.Append($"database={databaseName}");
+
+            connectionString = connectionStringBuilder.ToString();
+            
             MySqlConnection connection = new MySqlConnection(connectionString);
             await connection.OpenAsync();
                 

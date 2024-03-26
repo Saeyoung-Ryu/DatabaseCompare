@@ -28,7 +28,8 @@ public class ServerInfo
         var privateKeyFile = new PrivateKeyFile(privateKeyFilePath);
         PrivateKeyFileArray = new PrivateKeyFile[] {privateKeyFile};
         
-        var configurationPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ServerInfo.config");
+        // var configurationPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ServerInfo.config");
+        var configurationPath = "ServerInfo.config";
         string jsonString = await File.ReadAllTextAsync(configurationPath);
         var serverInfo = JsonSerializer.Deserialize<ServerInfo>(jsonString);
 
