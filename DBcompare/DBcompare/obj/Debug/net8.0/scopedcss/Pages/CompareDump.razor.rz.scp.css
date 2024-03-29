@@ -1,0 +1,57 @@
+#Border-Dotted[b-6gzrs21cqg]{border: 2px dotted}
+#Border-Solid[b-6gzrs21cqg]{border: 1px solid}
+#Border-Solid3px[b-6gzrs21cqg]{border: 3px solid #1a1e21}
+#Text1Style[b-6gzrs21cqg]{font-size: 23px;color : #41464b}
+#Text2Style[b-6gzrs21cqg]{font-size: 40px;color : #41464b}
+#Text3Style[b-6gzrs21cqg]{font-size: 14px;color : #1b6ec2}
+#container[b-6gzrs21cqg] {
+    height: 500px;
+    overflow: auto;
+}
+#fixedHeader[b-6gzrs21cqg]{
+    position: sticky;
+    top: 0;
+}
+
+.custom-input[b-6gzrs21cqg] {
+    width: 100%; /* Set the width of the input to 100% of its container */
+    padding: 10px; /* Add some padding for better readability */
+    border: 1px solid #ccc; /* Add a border */
+    border-radius: 4px; /* Add rounded corners */
+    font-size: 16px; /* Set the font size */
+    background-color: #fff; /* Set the background color */
+    color: #333; /* Set the text color */
+}
+
+/* Custom CSS for InputSelect */
+#custom-input-select[b-6gzrs21cqg] {
+    width: 100%; /* Set the width of the dropdown to 100% of its container */
+    padding: 8px; /* Add some padding for better readability */
+    border: 1px solid #ccc; /* Add a border */
+    border-radius: 4px; /* Add rounded corners */
+    font-size: 16px; /* Set the font size */
+    background-color: #fff; /* Set the background color */
+    color: #333; /* Set the text color */
+}
+
+/* Style for the dropdown arrow */
+#custom-input-select[b-6gzrs21cqg]::after {
+    content: '\25BC'; /* Unicode for a down arrow ▼ */
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+/* Style for the dropdown options */
+#custom-input-select option[b-6gzrs21cqg] {
+    background-color: #fff; /* Set the background color for options */
+    color: #333; /* Set the text color for options */
+}
+
+/* Style for the selected option */
+#custom-input-select option:checked[b-6gzrs21cqg] {
+    background-color: #007bff; /* Set a background color for the selected option */
+    color: #fff; /* Set the text color for the selected option */
+}

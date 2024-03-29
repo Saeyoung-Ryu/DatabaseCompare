@@ -10,6 +10,14 @@ namespace DBcompare.Manager;
 
 public class CompareManager
 {
+#pragma warning disable CS8601
+#pragma warning disable CS8602
+#pragma warning disable CS8603
+#pragma warning disable CS8618
+#pragma warning disable CS8600
+#pragma warning disable CS8604
+#pragma warning disable CS8625
+    
     public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow)
     {
         string server1 = servers[0];
@@ -269,45 +277,52 @@ public class CompareManager
 
     private static List<string> ForceFindPrimaryKeyColumnNames(TableInfo tableInfo, DataTable dataTable1, DataTable dataTable2)
     {
-        int order = 1;
-        
-        HashSet<string> hashSet = new HashSet<string>();
-        
-        for (int i = 0; i < dataTable1.Rows.Count; i++)
+        try
         {
-            string primaryKey = string.Empty;
-            
-            for (int j = 0; j < order; j++)
+            int order = 1;
+        
+            HashSet<string> hashSet = new HashSet<string>();
+        
+            for (int i = 0; i < dataTable1.Rows.Count; i++)
             {
-                var value = dataTable1.Rows[i].ItemArray[j].ToString();
-                
-                if (j == 0)
-                    primaryKey +=  dataTable1.Rows[i].ItemArray[j].ToString();
-                else
-                    primaryKey += $",{value}";
-
-                bool result = true;
-                
-                if (j == order - 1)
-                    result = hashSet.Add(primaryKey);
-
-                if (result == false) // Primary Key 불가능
+                string primaryKey = string.Empty;
+            
+                for (int j = 0; j < order; j++)
                 {
-                    hashSet.Clear();
-                    order++;
-                    i = -1;
-                    break;
+                    var value = dataTable1.Rows[i].ItemArray[j].ToString();
+                
+                    if (j == 0)
+                        primaryKey += dataTable1.Rows[i].ItemArray[j].ToString();
+                    else
+                        primaryKey += $",{value}";
+
+                    bool result = true;
+                
+                    if (j == order - 1)
+                        result = hashSet.Add(primaryKey);
+
+                    if (result == false) // Primary Key 불가능
+                    {
+                        hashSet.Clear();
+                        order++;
+                        i = -1;
+                        break;
+                    }
                 }
             }
-        }
 
-        List<string> primaryKeyColumnNames = new List<string>();
-        for (int i = 0; i < order; i++)
-        {
-            primaryKeyColumnNames.Add(dataTable1.Columns[i].ColumnName);
-        }
+            List<string> primaryKeyColumnNames = new List<string>();
+            for (int i = 0; i < order; i++)
+            {
+                primaryKeyColumnNames.Add(dataTable1.Columns[i].ColumnName);
+            }
         
-        return primaryKeyColumnNames;
+            return primaryKeyColumnNames;
+        }
+        catch (Exception e)
+        {
+            return new List<string>();
+        }
     }
     
     private static async Task<List<string>> CompareTableDataAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)

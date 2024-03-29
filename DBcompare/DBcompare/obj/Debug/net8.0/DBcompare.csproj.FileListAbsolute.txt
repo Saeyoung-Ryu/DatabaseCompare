@@ -139,3 +139,4 @@
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/DBcompare.pdb
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/DBcompare.genruntimeconfig.cache
 /Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/ref/DBcompare.dll
+/Users/saeyoungryu/Project/DatabaseCompareTool/DBcompare/DBcompare/obj/Debug/net8.0/scopedcss/Pages/CompareDump.razor.rz.scp.css

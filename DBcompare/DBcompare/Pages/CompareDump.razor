@@ -1,5 +1,4 @@
 @page "/{ProjectName}"
-@using Microsoft.AspNetCore.Components.Routing
 @using DBcompare.Common
 @using Enum
 
@@ -22,7 +21,7 @@
                 {
                     <MatTab Label="@tableInfo.tableName">
                         <LabelContent>
-                            @tableInfo.tableName
+                            @tableInfo.tableName <MatIconButton Icon="@MatIconNames.Close" OnClick="@(_ => CloseTab(tableInfo))"></MatIconButton>
                         </LabelContent>
                         <ChildContent>
                             @if (tableInfo.DifferentType == DifferentType.TableNotExist)
@@ -51,7 +50,7 @@
                                 <br><br>
                                 <h5>Data is different</h5>
                                 <h5>Table Name : @tableInfo.tableName</h5>
-                                @if (tableInfo.PrimaryKeys != null)
+                                @if (tableInfo.PrimaryKeys.Count > 0)
                                 {
                                     <h5>Primary Key : @string.Join(',', tableInfo.PrimaryKeys)</h5>
                                 }
@@ -61,7 +60,7 @@
                                     <MatTab Label="Table1">
                                         <br><br>
                                         <div id="container" class style="width: 1200px; height: 600px; overflow: auto; margin-top: 20px">
-                                            <table border="1" class="table table-border table-hover w-auto">
+                                            <table class="table table-border table-hover w-auto">
                                                 <thead>
                                                 <tr class="table-primary">
                                                     @foreach (var column in tableInfo.Columns[0])
@@ -123,7 +122,7 @@
                                     <MatTab Label="Table2">
                                         <br><br>
                                         <div id="container" class style="width: 1200px; height: 600px; overflow: auto; margin-top: 20px">
-                                            <table border="1" class="table table-border table-hover w-auto">
+                                            <table class="table table-border table-hover w-auto">
                                                 <thead>
                                                 <tr class="table-primary">
                                                     @foreach (var column in tableInfo.Columns[0])
@@ -181,16 +180,9 @@
                                             </table>
                                         </div>
                                     </MatTab>
-                                    
                                 </MatTabGroup>
-                                
-                                
-                                
-                                
                             }
                         </ChildContent>
-                        
-                        
                     </MatTab>
                 }
             </MatTabGroup>
@@ -210,8 +202,6 @@
         <MatCheckbox @bind-Value="@serverCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
     }
 </div>
-
-
 
 @if (CheckIfTwoIsSelected())
 {
@@ -295,7 +285,7 @@
     @if (tableList.Count > 0)
     {
         <div>
-            <button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync(false))">비교하기</button>
+            <button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync())">비교하기</button>
             @if (doCompare)
             {
                 <button type="submit" class="btn btn-info" style="width: 80px" @onclick="DumpBtn" disabled="@doDump">덤프</button>
@@ -341,231 +331,8 @@
             }
         }
     }
-    
 }
 
-@code {
-    [Parameter]
-    public string ProjectName { get; set; }
-    
-    protected override void OnParametersSet()
-    {
-        base.OnParametersSet();
-        ResetObjects();
-    }
-
-    private void ResetObjects()
-    {
-        ResetTableList();
-    }
-}
-
-@code
-{
-    int tabIndex = 0;
-    int tabIndex1 = 0;
-
-    Dictionary<string, bool> serverCheckedDictionary = new Dictionary<string, bool>();
-    Dictionary<string, bool> dumpCheckedDictionary = new Dictionary<string, bool>();
-
-    bool compareRow = true;
-
-    bool showDatabaseSelect = false;
-    bool showTableSelect = false;
-    bool doCompare = false;
-    bool doDump = false;
-    bool isLoading = false;
-    bool isDumpLoading = false;
-    bool finishedDump = false;
-
-    string compareDatabaseName = "";
-    string tableToAdd = "";
-
-    List<TableInfo> tableList = new List<TableInfo>();
-    
-    List<TableInfo> tableListForTabDelete = new List<TableInfo>();
-
-    private bool CheckIfTwoIsSelected()
-    {
-        int count = 0;
-        
-        foreach (var value in serverCheckedDictionary.Values)
-        {
-            if (value == true)
-                count++;
-        }
-
-        return count == 2;
-    }
-
-    private bool CheckIfOneIsSelected()
-    {
-        int count = 0;
-        
-        foreach (var value in dumpCheckedDictionary.Values)
-        {
-            if (value == true)
-                count++;
-        }
-
-        return count == 1;
-    }
-}
-
-@code
-{
-    private void SelectServerBtn()
-    {
-        showDatabaseSelect = true;
-    }
-
-    private void SelectDatabaseBtn()
-    {
-        showTableSelect = true;
-    }
-
-    private void AddTableList()
-    {
-        if (tableToAdd != String.Empty)
-        {
-            TableInfo tableInfo = new TableInfo();
-
-            if (!tableToAdd.StartsWith("tbl"))
-                tableToAdd = "tbl" + tableToAdd;
-
-            if(tableList.Select(e => e.tableName).ToList().Contains(tableToAdd))
-                return;
-            
-            tableInfo.tableName = tableToAdd;
-
-            tableList.Add(tableInfo);
-        }
-        tableToAdd = String.Empty;
-    }
-
-    private void ResetTableInfo()
-    {
-        foreach (var tableInfo in tableList)
-        {
-            tableInfo.isDifferent = false;
-            tableInfo.DifferentType = DifferentType.None;
-            tableInfo.PrimaryKeys = new List<string>();
-            
-            tableInfo.Columns = new List<string>[2];
-            tableInfo.Table1UniqueKeyDictionary = new Dictionary<string, List<object>>();
-            tableInfo.Table2UniqueKeyDictionary = new Dictionary<string, List<object>>();
-            tableInfo.Table1ValueDiffDictionary = new Dictionary<string, List<object>>();
-            tableInfo.Table2ValueDiffDictionary = new Dictionary<string, List<object>>();
-            tableInfo.Table1DifferentRows = new List<List<object?>>();
-            tableInfo.Table2DifferentRows = new List<List<object?>>();
-        }
-    }
-
-    private void ResetTableList()
-    {
-        tabIndex = 0;
-        tabIndex1 = 0;
-
-        serverCheckedDictionary = new Dictionary<string, bool>();
-        dumpCheckedDictionary = new Dictionary<string, bool>();
-        
-        foreach (var projectName in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
-        {
-            serverCheckedDictionary.Add(projectName, false);
-            dumpCheckedDictionary.Add(projectName, false);
-        }
-
-        showDatabaseSelect = false;
-        showTableSelect = false;
-        doCompare = false;
-        compareRow = true;
-        doDump = false;
-        isLoading = false;
-        isDumpLoading = false;
-        finishedDump = false;
-
-        compareDatabaseName = "";
-        tableToAdd = "";
-        tableList = new List<TableInfo>();
-        tableListForTabDelete = new List<TableInfo>();
-    }
-
-    private async Task StartCompareBtnAsync(bool compareAllTables)
-    {
-        ResetTableInfo();
-        
-        List<string> servers = new List<string>();
-        string database = compareDatabaseName;
-        List<string> tables = new List<string>();
-
-        foreach (var key in serverCheckedDictionary.Keys)
-        {
-            if (serverCheckedDictionary[key])
-                servers.Add(ServerInfo.Instance.ConnectionStrings[ProjectName][key]);
-        }
-
-        isLoading = true;
-        
-        if (database == string.Empty)
-            database = ServerInfo.Instance.Databases[ProjectName][0];
-        
-        var compareResult = await CompareManager.CompareAsync(servers, database, tableList, compareRow);
-        tableList = compareResult;
-        tableListForTabDelete = compareResult.Select(e => e).ToList();
-        
-        doCompare = true;
-        isLoading = false;
-    }
-
-    private void DumpBtn()
-    {
-        doDump = true;
-    }
-
-    private async Task DumpAsyncBtn()
-    {
-        isDumpLoading = true;
-        
-        string server = String.Empty;
-        string database = compareDatabaseName;
-        List<string> tables = new List<string>();
-        
-        foreach (var key in dumpCheckedDictionary.Keys)
-        {
-            if (dumpCheckedDictionary[key])
-                server = ServerInfo.Instance.ConnectionStrings[ProjectName][key];
-        }
-        
-        if (database == string.Empty)
-            database = ServerInfo.Instance.Databases[ProjectName][0];
-        
-        await DumpManager.DumpAsync(database, server, tableList.Where(e => e.isDifferent).Select(e => e.tableName).ToList(), database == "HomerunClashConst");
-        
-        isDumpLoading = false;
-        finishedDump = true;
-    }
-}
-
-@code
-{
-    void CloseTab(string tableName)
-    {
-        tableListForTabDelete = tableListForTabDelete.Where(e => e.tableName != tableName).ToList();
-    }
-}
-
-@code
-{
-    protected override Task OnInitializedAsync()
-    {
-        Console.WriteLine("Initialized");
-
-        foreach (var projectName in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
-        {
-            serverCheckedDictionary.Add(projectName, false);
-            dumpCheckedDictionary.Add(projectName, false);
-        }
-        
-        return base.OnInitializedAsync();
-    }
+@code{
+#pragma warning disable
 }

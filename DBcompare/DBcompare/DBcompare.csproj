@@ -24,4 +24,10 @@
       </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="Pages\CompareDump.cs">
+        <DependentUpon>CompareDump.razor</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
 </Project>

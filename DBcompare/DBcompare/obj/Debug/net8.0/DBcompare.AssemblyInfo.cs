@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DBcompare")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+025d221a48e3d491403037aedacef00203b4b387")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3f62201499f8698d4fddb565b32444c23725fa25")]
 [assembly: System.Reflection.AssemblyProductAttribute("DBcompare")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DBcompare")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
