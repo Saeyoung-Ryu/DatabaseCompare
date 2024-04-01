@@ -406,7 +406,7 @@ public class CompareManager
             primaryKeyColumnNames = columnNames;    
         
         if (primaryKeyColumnNames == null || primaryKeyColumnNames.Count == 0)
-            return null;
+            return new Dictionary<string, List<object>>();;
         
         tableInfo.PrimaryKeys = primaryKeyColumnNames;
 
