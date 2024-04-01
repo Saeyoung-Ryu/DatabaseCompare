@@ -9,6 +9,9 @@ using System.Text.Json;
 
 public class ServerInfo
 {
+#pragma warning disable 8601    
+#pragma warning disable 8618    
+    
     public static ServerInfo Instance { get; private set; }
     
     public static PrivateKeyFile[] PrivateKeyFileArray { get; private set; }

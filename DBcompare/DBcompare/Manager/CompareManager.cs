@@ -1,10 +1,8 @@
 using System.Data;
-using System.Diagnostics;
 using Dapper;
 using DBcompare.Common;
 using Enum;
 using MySqlConnector;
-using Renci.SshNet;
 
 namespace DBcompare.Manager;
 
@@ -16,7 +14,8 @@ public class CompareManager
 #pragma warning disable CS8618
 #pragma warning disable CS8600
 #pragma warning disable CS8604
-#pragma warning disable CS8625
+#pragma warning disable CS8620    
+#pragma warning disable CS8625    
     
     public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow)
     {
@@ -64,11 +63,11 @@ public class CompareManager
                     foreach (var tableInfo in tableInfos)
                     {
                         int isDifferent = (tableInfo.DifferentType != DifferentType.None ? 1 : 0);
-                        string[] connArray1 = server1.Split(new char[] {';'});
-                        string[] connArray2 = server2.Split(new char[] {';'});
+                        string[] connArray1 = server1.Split(new[] {';'});
+                        string[] connArray2 = server2.Split(new[] {';'});
                         await connection.ExecuteAsync(
                             $"INSERT INTO compareLog (`connectionString1`, `connectionString2`, `tableName`, `isDifferent`, `time`)" +
-                            $" VALUES ('{connArray1[0]}', '{connArray2[0]}', '{tableInfo.tableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
+                            $" VALUES ('{connArray1[0]}', '{connArray2[0]}', '{tableInfo.TableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
                     }
                 }
 
@@ -108,10 +107,10 @@ public class CompareManager
         {
             foreach (var tableInfo in tableInfos)
             {
-                if(tableInfo.tableName == differentTable)
+                if(tableInfo.TableName == differentTable)
                 {
                     Console.WriteLine($"Different Table: {differentTable}");
-                    tableInfo.isDifferent = true;
+                    tableInfo.IsDifferent = true;
                     
                     if (differentType != DifferentType.None)
                         tableInfo.DifferentType = differentType;
@@ -124,7 +123,7 @@ public class CompareManager
     
     private static async Task<List<string>> CompareTablesExistAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
     {
-        var tableNames = tableInfos.Select(e => e.tableName).ToList();
+        var tableNames = tableInfos.Select(e => e.TableName).ToList();
 
         var server1MissingTable = await TableExistsAsync(connection1, tableNames);
         var server2MissingTable = await TableExistsAsync(connection2, tableNames);
@@ -192,15 +191,15 @@ public class CompareManager
 
         foreach (var tableInfo in tableInfos)
         {
-            List<Column> columnsServer1 = await GetTableColumnsAsync(connection1, tableInfo.tableName);
-            List<Column> columnsServer2 = await GetTableColumnsAsync(connection2, tableInfo.tableName);
+            List<Column> columnsServer1 = await GetTableColumnsAsync(connection1, tableInfo.TableName);
+            List<Column> columnsServer2 = await GetTableColumnsAsync(connection2, tableInfo.TableName);
 
             var areColumnsEqual = AreColumnsEqual(columnsServer1, columnsServer2, tableInfo);
             
             if (!areColumnsEqual)
             {
                 tableInfo.DifferentType = DifferentType.ColumnDifferent;
-                differentTables.Add(tableInfo.tableName);
+                differentTables.Add(tableInfo.TableName);
             }
         }
         
@@ -319,7 +318,7 @@ public class CompareManager
         
             return primaryKeyColumnNames;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return new List<string>();
         }
@@ -333,22 +332,22 @@ public class CompareManager
 
         foreach (var tableInfo in tableInfos)
         {
-            var tableDictionaryServer1 = await GetTableDataDictionaryAsync(connection1, tableInfo.tableName, tableInfo);
-            var tableDictionaryServer2 = await GetTableDataDictionaryAsync(connection2, tableInfo.tableName, tableInfo);
+            var tableDictionaryServer1 = GetTableDataDictionary(connection1, tableInfo.TableName, tableInfo);
+            var tableDictionaryServer2 = GetTableDataDictionary(connection2, tableInfo.TableName, tableInfo);
 
-            if (tableDictionaryServer1 != null && tableDictionaryServer2 != null && tableDictionaryServer1.Keys.Count > 0 && tableDictionaryServer2.Keys.Count > 0)
+            if (tableDictionaryServer1.Keys.Count > 0 && tableDictionaryServer2.Keys.Count > 0)
             {
                 if (!AreTablesEqual(tableDictionaryServer1, tableDictionaryServer2, tableInfo))
                 {
-                    tableInfo.isDifferent = true;
+                    tableInfo.IsDifferent = true;
                     tableInfo.DifferentType = DifferentType.DataDifferentWithIndex;
-                    differentTables.Add(tableInfo.tableName);
+                    differentTables.Add(tableInfo.TableName);
                 }
             }
             else
             {
-                DataTable tableServer1 = await GetTableDataAsync(connection1, tableInfo.tableName);
-                DataTable tableServer2 = await GetTableDataAsync(connection2, tableInfo.tableName);
+                DataTable tableServer1 = await GetTableDataAsync(connection1, tableInfo.TableName);
+                DataTable tableServer2 = await GetTableDataAsync(connection2, tableInfo.TableName);
                 
                 var forceFindPrimaryKey = ForceFindPrimaryKeyColumnNames(tableInfo, tableServer1, tableServer2);
 
@@ -357,21 +356,21 @@ public class CompareManager
                     // 강제로 primary Key 세팅 실패했을때
                     if (!AreTablesEqual(tableServer1, tableServer2, tableInfo))
                     {
-                        tableInfo.isDifferent = true;
+                        tableInfo.IsDifferent = true;
                         tableInfo.DifferentType = DifferentType.DataDifferentWithoutIndex;
-                        differentTables.Add(tableInfo.tableName);
+                        differentTables.Add(tableInfo.TableName);
                     }
                 }
                 else
                 {
-                    var forceTableDictionaryServer1 = await GetTableDataDictionaryAsync(connection1, tableInfo.tableName, tableInfo, forceFindPrimaryKey);
-                    var forceTableDictionaryServer2 = await GetTableDataDictionaryAsync(connection2, tableInfo.tableName, tableInfo, forceFindPrimaryKey);
+                    var forceTableDictionaryServer1 = GetTableDataDictionary(connection1, tableInfo.TableName, tableInfo, forceFindPrimaryKey);
+                    var forceTableDictionaryServer2 = GetTableDataDictionary(connection2, tableInfo.TableName, tableInfo, forceFindPrimaryKey);
                     
                     if (!AreTablesEqual(forceTableDictionaryServer1, forceTableDictionaryServer2, tableInfo))
                     {
-                        tableInfo.isDifferent = true;
+                        tableInfo.IsDifferent = true;
                         tableInfo.DifferentType = DifferentType.DataDifferentWithIndex;
-                        differentTables.Add(tableInfo.tableName);
+                        differentTables.Add(tableInfo.TableName);
                     }
                 }
             }
@@ -395,7 +394,7 @@ public class CompareManager
         }
     }
     
-    private static async Task<Dictionary<string, List<object>>> GetTableDataDictionaryAsync(MySqlConnection connection, string tableName, TableInfo tableInfo, List<string> columnNames = null)
+    private static Dictionary<string, List<object>> GetTableDataDictionary(MySqlConnection connection, string tableName, TableInfo tableInfo, List<string> columnNames = null)
     {
         Dictionary<string, List<object>> rowsDictionary = new Dictionary<string, List<object>>();
         List<string> primaryKeyColumnNames = null;
@@ -472,12 +471,6 @@ public class CompareManager
         }
 
         return primaryKeyColumnNames;
-    }
-
-    class MyDataTable
-    {
-        DataRowCollection row;
-        bool isRowEqual = false;
     }
 
     private static bool AreTablesEqual(Dictionary<string, List<object>> table1, Dictionary<string, List<object>> table2, TableInfo tableInfo)
@@ -562,9 +555,6 @@ public class CompareManager
     private static bool AreTablesEqual(DataTable table1, DataTable table2, TableInfo tableInfo)
     {
         // tableInfo 안에 데이터가 다르면 isDifferent = true로 바꿔주기, DifferentType 세팅, 다른 데이터 row들 넣어주기
-        
-        MyDataTable myDataTable1 = new MyDataTable() {};
-        
         int itemArrayCount = tableInfo.Columns[0].Count;
 
         for (int i = 0; i < table1.Rows.Count; i++)

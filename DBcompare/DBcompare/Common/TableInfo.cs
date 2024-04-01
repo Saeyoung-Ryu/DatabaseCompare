@@ -5,8 +5,8 @@ namespace DBcompare.Common;
 
 public class TableInfo
 {
-    public string tableName;
-    public bool isDifferent = false;
+    public string? TableName;
+    public bool IsDifferent = false;
     public DifferentType DifferentType = DifferentType.None;
     public List<string> PrimaryKeys = new List<string>();
     

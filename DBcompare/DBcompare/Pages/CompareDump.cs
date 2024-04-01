@@ -7,8 +7,11 @@ namespace DBcompare.Pages;
 
 public partial class CompareDump
 {
+#pragma warning disable CS8600    
 #pragma warning disable CS8601
+#pragma warning disable CS8604    
 #pragma warning disable CS8618
+#pragma warning disable CS8620    
     
     int tabIndex = 0;
     int tabIndex1 = 0;
@@ -24,7 +27,7 @@ public partial class CompareDump
     bool isLoading = false;
     bool isDumpLoading = false;
     bool finishedDump = false;
-    string compareDatabaseName = "";
+    string? compareDatabaseName = "";
     string tableToAdd = "";
     
     List<TableInfo> tableList = new List<TableInfo>();
@@ -55,6 +58,11 @@ public partial class CompareDump
     private void ResetObjects()
     {
         ResetTableList();
+    }
+    
+    private void OnSelectChange(ChangeEventArgs e)
+    {
+        compareDatabaseName = e?.Value?.ToString() ?? ""; // Null-conditional operator and null-coalescing operator used here
     }
     
     private bool CheckIfTwoIsSelected()
@@ -102,10 +110,10 @@ public partial class CompareDump
             if (!tableToAdd.StartsWith("tbl"))
                 tableToAdd = "tbl" + tableToAdd;
 
-            if(tableList.Select(e => e.tableName).ToList().Contains(tableToAdd))
+            if(tableList.Select(e => e.TableName).ToList().Contains(tableToAdd))
                 return;
             
-            tableInfo.tableName = tableToAdd;
+            tableInfo.TableName = tableToAdd;
 
             tableList.Add(tableInfo);
         }
@@ -116,7 +124,7 @@ public partial class CompareDump
     {
         foreach (var tableInfo in tableList)
         {
-            tableInfo.isDifferent = false;
+            tableInfo.IsDifferent = false;
             tableInfo.DifferentType = DifferentType.None;
             tableInfo.PrimaryKeys = new List<string>();
             
@@ -207,7 +215,7 @@ public partial class CompareDump
         if (database == string.Empty)
             database = ServerInfo.Instance.Databases[ProjectName][0];
         
-        await DumpManager.DumpAsync(database, server, tableList.Where(e => e.isDifferent).Select(e => e.tableName).ToList(), database == "HomerunClashConst");
+        await DumpManager.DumpAsync(database, server, tableList.Where(e => e.IsDifferent).Select(e => e.TableName).ToList(), database == "HomerunClashConst");
         
         isDumpLoading = false;
         finishedDump = true;
@@ -215,6 +223,6 @@ public partial class CompareDump
     
     void CloseTab(TableInfo tableInfo)
     {
-        tableListForTabDelete = tableListForTabDelete.Where(e => e.tableName != tableInfo.tableName).ToList();
+        tableListForTabDelete = tableListForTabDelete.Where(e => e.TableName != tableInfo.TableName).ToList();
     }
 }

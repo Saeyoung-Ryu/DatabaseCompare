@@ -7,12 +7,16 @@ namespace DBcompare.Common;
 
 public class DBConnectionInfo
 {
+#pragma warning disable CS8600
+#pragma warning disable CS8603    
+#pragma warning disable CS8618    
+    
     public string ConnectionString { get; set; }
     public SshClient? SshClient { get; set; }
     public ForwardedPortLocal? ForwardedPortLocal { get; set; }
     public MySqlConnection? MySqlConnection { get; set; }
     
-    public static async Task<DBConnectionInfo?> GetConnectionInfoAsync(string server, string databaseName)
+    public static async Task<DBConnectionInfo> GetConnectionInfoAsync(string server, string databaseName)
     {
         string connectionString = string.Empty;
         DBConnectionInfo connectionInfo = null;

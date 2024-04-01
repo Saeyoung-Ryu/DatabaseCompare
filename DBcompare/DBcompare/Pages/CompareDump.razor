@@ -1,4 +1,4 @@
-@page "/{ProjectName}"
+@page "/DBCompare/{ProjectName}"
 @using DBcompare.Common
 @using Enum
 
@@ -17,24 +17,24 @@
     <div style="position: relative;">
         <div style="position: absolute; top: 0; right: 100px;">
             <MatTabGroup @bind-ActiveIndex="@tabIndex" Style="width: 1200px">
-                @foreach(var tableInfo in tableListForTabDelete.Where(e => e.isDifferent))
+                @foreach(var tableInfo in tableListForTabDelete.Where(e => e.IsDifferent))
                 {
-                    <MatTab Label="@tableInfo.tableName">
+                    <MatTab Label="@tableInfo.TableName">
                         <LabelContent>
-                            @tableInfo.tableName <MatIconButton Icon="@MatIconNames.Close" OnClick="@(_ => CloseTab(tableInfo))"></MatIconButton>
+                            @tableInfo.TableName <MatIconButton Icon="@MatIconNames.Close" OnClick="@(_ => CloseTab(tableInfo))"></MatIconButton>
                         </LabelContent>
                         <ChildContent>
                             @if (tableInfo.DifferentType == DifferentType.TableNotExist)
                             {
                                 <br><br>
                                 <h5>Table Not Exist</h5>
-                                <h5>@tableInfo.tableName</h5>
+                                <h5>@tableInfo.TableName</h5>
                             }
                             @if (tableInfo.DifferentType == DifferentType.ColumnDifferent)
                             {
                                 <br><br>
                                 <h5>Column is different</h5>
-                                <h5>@tableInfo.tableName</h5>
+                                <h5>@tableInfo.TableName</h5>
                                 <br><br>
                                 @foreach (var column in tableInfo.Columns)
                                 {
@@ -49,7 +49,7 @@
                             {
                                 <br><br>
                                 <h5>Data is different</h5>
-                                <h5>Table Name : @tableInfo.tableName</h5>
+                                <h5>Table Name : @tableInfo.TableName</h5>
                                 @if (tableInfo.PrimaryKeys.Count > 0)
                                 {
                                     <h5>Primary Key : @string.Join(',', tableInfo.PrimaryKeys)</h5>
@@ -199,8 +199,11 @@
     @foreach (var server in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
     {
         var labelContent = $"{server}";
-        <MatCheckbox @bind-Value="@serverCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
+        <div style="margin-right: 20px;">
+            <MatCheckbox @bind-Value="@serverCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
+        </div>
     }
+
 </div>
 
 @if (CheckIfTwoIsSelected())
@@ -219,13 +222,13 @@
         </div>
     </div>
     <div>
-        <select class="form-select" style="width: 300px" @onchange="(e) => compareDatabaseName = e.Value.ToString()" disabled="@showTableSelect">
+        <select class="form-select" style="width: 300px" @onchange="(e) => OnSelectChange(e)" disabled="@showTableSelect">
             @foreach (var dbName in ServerInfo.Instance.FindDatabases(ProjectName))
             {
                 <option value="@dbName" selected="@(dbName == compareDatabaseName)">@dbName</option>
             }
         </select>
-        
+
         <button type="submit" class="btn btn-success" style="width: 80px" @onclick="SelectDatabaseBtn" disabled="@showTableSelect">선택</button>
     </div>
 }
@@ -250,10 +253,10 @@
         @foreach (var tableToAdd in tableList)
         {
             <div style="display: flex;">
-                <h5 id="Text1Style">@tableToAdd.tableName </h5>
+                <h5 id="Text1Style">@tableToAdd.TableName </h5>
                 @if (doCompare)
                 {
-                    if (tableToAdd.isDifferent)
+                    if (tableToAdd.IsDifferent)
                     {
                         <MatIcon class="mat-icon-error">error</MatIcon>
                         if (tableToAdd.DifferentType == DifferentType.TableNotExist)
@@ -302,9 +305,10 @@
         <div>
             @foreach (var server in ServerInfo.Instance.ConnectionStrings[ProjectName].Keys)
             {
-                var labelContent = $"{server}"; // Construct the label content here
-
-                <MatCheckbox @bind-Value="@dumpCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
+                var labelContent = $"{server}";
+                <div style="margin-right: 20px;">
+                    <MatCheckbox @bind-Value="@dumpCheckedDictionary[server]" Label="@labelContent"></MatCheckbox>
+                </div>
             }
         </div>
         
@@ -331,8 +335,4 @@
             }
         }
     }
-}
-
-@code{
-#pragma warning disable
 }
