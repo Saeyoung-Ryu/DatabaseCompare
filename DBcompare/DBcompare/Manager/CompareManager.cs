@@ -69,7 +69,7 @@ public class CompareManager
                             string[] connArray1 = server1.Split(new[] {';'});
                             string[] connArray2 = server2.Split(new[] {';'});
                             await connection.ExecuteAsync(
-                                $"INSERT INTO compareLog (`userName`, `connectionString1`, `connectionString2`, `tableName`, `isDifferent`, `time`)" +
+                                $"INSERT INTO tblCompareLog (`userName`, `connectionString1`, `connectionString2`, `tableName`, `isDifferent`, `time`)" +
                                 $" VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray1[0]}', '{connArray2[0]}', '{tableInfo.TableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
                         }
                     }

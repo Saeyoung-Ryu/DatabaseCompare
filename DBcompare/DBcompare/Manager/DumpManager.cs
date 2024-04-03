@@ -60,7 +60,7 @@ public class DumpManager
                                 foreach (var tableName in tableNames)
                                 {
                                     await connection.ExecuteAsync(
-                                        $"INSERT INTO dumpLog (`userName`, `connectionString`, `tableName`, `time`) VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray[0]}', '{tableName}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
+                                        $"INSERT INTO tblDumpLog (`userName`, `connectionString`, `tableName`, `time`) VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray[0]}', '{tableName}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
                                 }
                             }
                             catch (MySqlConnector.MySqlException)
