@@ -6,7 +6,26 @@
     <NotFound>
         <PageTitle>Not found</PageTitle>
         <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
+                <h1>Welcome to DBCompare Tool!</h1>
+                <br><br><br>
+                <h3>Explanation</h3>
+                <br>
+                <p>DBCompare Tool is a tool that allows you to compare two databases tables and see the differences between them.</p>
+                <p>You can also dump the different tables of chosen server, which will eventually reduce time and mistakes.</p>
+                <br><br>
+                <h3>Steps For Setting</h3>
+                <br>
+                <p>1. Set ServerInfo.config file which contains information for database connection.</p>
+                <p>2. If you want to save log whenever you compare/dump, set the path of DumpInfo.config.</p>
+                <p>3. Also in DumpInfo.config, you can set the path where the dumped filed should be stored</p>
+                <br><br>
+                <h3>How to use?</h3>
+                <br>
+                <p>First, click the project you want at the Navigation Menu at left part of the page.</p>
+                <p>Second, check the checkbox of two projects you want to compare. (You mush check only two unless it won't move next).</p>
+                <p>Third, select the database you want to compare. You can set the database select list through ServerInfo.Config.</p>
+                <p>Fourth, Enter the table names. It will add "tbl" automatically. If you don't want to compare row data, check off the 'Row data compare' checkbox.</p>
+                <p>Lastly, select the server which you want to dump the different tables. It won't dump the same tables.</p>
         </LayoutView>
     </NotFound>
 </Router>

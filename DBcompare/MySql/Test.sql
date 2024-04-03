@@ -4,6 +4,7 @@
 DROP TABLE IF EXISTS `compareLog`;
 CREATE TABLE `compareLog` (
   `seq` bigint NOT NULL AUTO_INCREMENT,
+  `userName` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `connectionString1` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `connectionString2` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `tableName` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
@@ -18,6 +19,7 @@ CREATE TABLE `compareLog` (
 DROP TABLE IF EXISTS `dumpLog`;
 CREATE TABLE `dumpLog` (
   `seq` int NOT NULL AUTO_INCREMENT,
+  `userName` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
   `connectionString` varchar(255) NOT NULL,
   `tableName` varchar(60) NOT NULL,
   `time` datetime NOT NULL,

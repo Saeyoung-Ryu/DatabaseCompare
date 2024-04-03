@@ -3,6 +3,7 @@ using Dapper;
 using DBcompare.Common;
 using Enum;
 using MySqlConnector;
+using MySqlException = MySql.Data.MySqlClient.MySqlException;
 
 namespace DBcompare.Manager;
 
@@ -59,15 +60,22 @@ public class CompareManager
                 DateTime time = DateTime.Now;
                 using (MySqlConnection connection = new MySqlConnection(DumpInfo.Instance.DumpLogSaveServerAddress))
                 {
-                    await connection.OpenAsync();
-                    foreach (var tableInfo in tableInfos)
+                    try
                     {
-                        int isDifferent = (tableInfo.DifferentType != DifferentType.None ? 1 : 0);
-                        string[] connArray1 = server1.Split(new[] {';'});
-                        string[] connArray2 = server2.Split(new[] {';'});
-                        await connection.ExecuteAsync(
-                            $"INSERT INTO compareLog (`connectionString1`, `connectionString2`, `tableName`, `isDifferent`, `time`)" +
-                            $" VALUES ('{connArray1[0]}', '{connArray2[0]}', '{tableInfo.TableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
+                        await connection.OpenAsync();
+                        foreach (var tableInfo in tableInfos)
+                        {
+                            int isDifferent = (tableInfo.DifferentType != DifferentType.None ? 1 : 0);
+                            string[] connArray1 = server1.Split(new[] {';'});
+                            string[] connArray2 = server2.Split(new[] {';'});
+                            await connection.ExecuteAsync(
+                                $"INSERT INTO compareLog (`userName`, `connectionString1`, `connectionString2`, `tableName`, `isDifferent`, `time`)" +
+                                $" VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray1[0]}', '{connArray2[0]}', '{tableInfo.TableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
+                        }
+                    }
+                    catch (MySqlConnector.MySqlException)
+                    {
+                        Console.WriteLine("Failed to connect to database. Check if table `compareLog` exists.");
                     }
                 }
 
@@ -131,31 +139,6 @@ public class CompareManager
         var combinedList = server1MissingTable.Union(server2MissingTable).ToList();
                 
         return combinedList;
-    }
-
-    private static async Task<List<string>> GetExistingTablesAsync(MySqlConnection connection, List<string> tableNames)
-    {
-        // List<string> missingTables = new List<string>();
-
-        foreach (string tableName in tableNames)
-        {
-            string query = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{connection.Database}' AND table_name = '{tableName}'";
-
-            using (MySqlCommand command = new MySqlCommand(query, connection))
-            {
-                object result = await command.ExecuteScalarAsync();
-                if (result == null)
-                    break;
-
-                long count = (long)result;
-                if (count == 0)
-                {
-                    tableNames.Remove(tableName);
-                }
-            }
-        }
-
-        return tableNames;
     }
     
     private static async Task<List<string>> TableExistsAsync(MySqlConnection connection, List<string> tableNames)

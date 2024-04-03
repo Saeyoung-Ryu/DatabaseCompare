@@ -46,19 +46,26 @@ public class DumpManager
                         }
                         
                         string savePath = $@"{DumpInfo.Instance.DumpFileSavePath}";
-                        File.WriteAllText(savePath, exportedCombine.ToString(), Encoding.Default);
+                        Directory.CreateDirectory(Path.GetDirectoryName(savePath));
+                        await File.WriteAllTextAsync(savePath, exportedCombine.ToString(), Encoding.Default);
 
                         string[] connArray = conn.Split(new char[] {';'});
                         string testConn = DumpInfo.Instance.DumpLogSaveServerAddress;       
                         DateTime time = DateTime.Now;           
                         using (MySqlConnection connection = new MySqlConnection(testConn))
                         {
-                            await connection.OpenAsync();
-                            foreach (var tableName in tableNames)
+                            try
                             {
-                                Console.WriteLine(connArray[0]);
-                                await connection.ExecuteAsync($"INSERT INTO dumpLog (`connectionString`, `tableName`, `time`) VALUES ('{connArray[0]}', '{tableName}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
-                                Console.WriteLine($"{tableName} dumped");
+                                await connection.OpenAsync();
+                                foreach (var tableName in tableNames)
+                                {
+                                    await connection.ExecuteAsync(
+                                        $"INSERT INTO dumpLog (`userName`, `connectionString`, `tableName`, `time`) VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray[0]}', '{tableName}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
+                                }
+                            }
+                            catch (MySqlConnector.MySqlException)
+                            {
+                                Console.WriteLine("Failed to connect to database. Check if table `dumpLog` exists.");
                             }
                         }
                         await myCon.CloseAsync();
