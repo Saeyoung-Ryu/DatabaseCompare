@@ -42,6 +42,8 @@ public class CompareManager
 
                 if (compareAllTables)
                 {
+                    tableInfos.Clear();
+                    
                     var conn1Tables = await GetAllTableNamesAsync(connection1);
                     var conn2Tables = await GetAllTableNamesAsync(connection2);
                     
