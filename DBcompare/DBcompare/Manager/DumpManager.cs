@@ -50,7 +50,7 @@ public class DumpManager
                         await File.WriteAllTextAsync(savePath, exportedCombine.ToString(), Encoding.Default);
 
                         string[] connArray = conn.Split(new char[] {';'});
-                        string testConn = DumpInfo.Instance.DumpLogSaveServerAddress;       
+                        string testConn = DumpInfo.Instance.LogSaveServerAddress;       
                         DateTime time = DateTime.Now;           
                         using (MySqlConnection connection = new MySqlConnection(testConn))
                         {

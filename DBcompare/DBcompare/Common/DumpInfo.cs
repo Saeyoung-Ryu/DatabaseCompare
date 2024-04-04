@@ -13,7 +13,7 @@ public class DumpInfo
     
     public static DumpInfo Instance { get; private set; }
     public string DumpFileSavePath { get; set; }
-    public string DumpLogSaveServerAddress { get; set; }
+    public string LogSaveServerAddress { get; set; }
     
     [Refreshable]
     public static async Task RefreshAsync()

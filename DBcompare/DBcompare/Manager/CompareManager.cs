@@ -18,7 +18,7 @@ public class CompareManager
 #pragma warning disable CS8620    
 #pragma warning disable CS8625    
     
-    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow)
+    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow, bool compareAllTables)
     {
         string server1 = servers[0];
         string server2 = servers[1];
@@ -40,6 +40,19 @@ public class CompareManager
                 if (connection2.State != ConnectionState.Open)
                     await connection2.OpenAsync();
 
+                if (compareAllTables)
+                {
+                    var conn1Tables = await GetAllTableNamesAsync(connection1);
+                    var conn2Tables = await GetAllTableNamesAsync(connection2);
+                    
+                    var combinedList = conn1Tables.Union(conn2Tables).ToList().DistinctBy(e => e).ToList();
+                    
+                    foreach (var tableName in combinedList)
+                    {
+                        tableInfos.Add(new TableInfo() {TableName = tableName});
+                    }
+                }
+
                 // check TABLE EXIST
                 var tableNameWithNowExisting = await CompareTablesExistAsync(tableInfos, connection1, connection2);
                 SetDifferentTablesAfterCompare(tableInfos, tableNameWithNowExisting, DifferentType.TableNotExist);
@@ -58,7 +71,7 @@ public class CompareManager
                 }
 
                 DateTime time = DateTime.Now;
-                using (MySqlConnection connection = new MySqlConnection(DumpInfo.Instance.DumpLogSaveServerAddress))
+                using (MySqlConnection connection = new MySqlConnection(DumpInfo.Instance.LogSaveServerAddress))
                 {
                     try
                     {
@@ -107,6 +120,26 @@ public class CompareManager
             if (connectionInfo2.SshClient != null)
                 connectionInfo2.SshClient.Dispose();
         }
+    }
+
+    private static async Task<List<string>> GetAllTableNamesAsync(MySqlConnection connection)
+    {
+        List<string> tableNames = new List<string>();
+        
+        string query = "SELECT table_name FROM information_schema.tables WHERE table_schema = @databaseName AND table_type = 'BASE TABLE'";
+        MySqlCommand command = new MySqlCommand(query, connection);
+        command.Parameters.AddWithValue("@databaseName", connection.Database);
+
+        using (MySqlDataReader reader = await command.ExecuteReaderAsync())
+        {
+            while (reader.Read())
+            {
+                string tableName = reader.GetString(0);
+                tableNames.Add(tableName);
+            }
+        }
+        
+        return tableNames;
     }
     
     private static void SetDifferentTablesAfterCompare(List<TableInfo> tableInfos, List<string> differentTables, DifferentType differentType = DifferentType.None)

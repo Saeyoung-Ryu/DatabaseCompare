@@ -2,6 +2,8 @@
 @using DBcompare.Common
 @using Enum
 
+@inject NavigationManager NavigationManager
+
 <PageTitle>@ProjectName</PageTitle>
 
 <h1 style="font-size: 48px; font-weight: bold;">@ProjectName</h1>
@@ -240,12 +242,15 @@
         <div class="horizontal-container">
             <h3><span style="color: blue; font-weight: bold;">Step3)</span> 비교할 테이블을 입력하세요.</h3>
             <MatCheckbox @bind-Value="@compareRow" Label="Row 데이터 비교"></MatCheckbox>
+            <MatCheckbox @bind-Value="@compareAllTables" Label="모든 테이블 비교"></MatCheckbox>
         </div>
     </div>
     <div>
-        <input type="text" size="30" @bind="@tableToAdd">
-        <button type="submit" class="btn btn-primary" style="width: 80px" @onclick="AddTableList">추가</button>
-        @*<button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync(true))">전체 비교</button>*@
+        @if (!compareAllTables)
+        {
+            <input type="text" size="30" @bind="@tableToAdd">
+            <button type="submit" class="btn btn-primary" style="width: 80px" @onclick="AddTableList">추가</button>
+        }
     </div>
     
     @if (!isLoading)
@@ -285,11 +290,11 @@
         <MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Large" />
     }
     
-    @if (tableList.Count > 0)
+    @if (tableList.Count > 0 || compareAllTables)
     {
         <div>
             <button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync())">비교하기</button>
-            @if (doCompare)
+            @if (doCompare && NavigationManager.Uri.Contains("localhost"))
             {
                 <button type="submit" class="btn btn-info" style="width: 80px" @onclick="DumpBtn" disabled="@doDump">덤프</button>
             }

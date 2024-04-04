@@ -19,7 +19,9 @@ public partial class CompareDump
     Dictionary<string, bool> serverCheckedDictionary = new Dictionary<string, bool>();
     Dictionary<string, bool> dumpCheckedDictionary = new Dictionary<string, bool>();
 
-    bool compareRow = true;
+    bool compareRow = true; 
+    bool compareAllTables = false;
+    
     bool showDatabaseSelect = false;
     bool showTableSelect = false;
     bool doCompare = false;
@@ -185,7 +187,7 @@ public partial class CompareDump
         if (database == string.Empty)
             database = ServerInfo.Instance.Databases[ProjectName][0];
         
-        var compareResult = await CompareManager.CompareAsync(servers, database, tableList, compareRow);
+        var compareResult = await CompareManager.CompareAsync(servers, database, tableList, compareRow, compareAllTables);
         tableList = compareResult;
         tableListForTabDelete = compareResult.Select(e => e).ToList();
         
