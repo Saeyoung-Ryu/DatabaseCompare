@@ -21,6 +21,7 @@ public partial class CompareDump
 
     bool compareRow = true; 
     bool compareAllTables = false;
+    bool compareAllSP = false;
     
     bool showDatabaseSelect = false;
     bool showTableSelect = false;
@@ -31,9 +32,11 @@ public partial class CompareDump
     bool finishedDump = false;
     string? compareDatabaseName = "";
     string tableToAdd = "";
+    List<string> selectedServerNames = new List<string>();
     
     List<TableInfo> tableList = new List<TableInfo>();
     List<TableInfo> tableListForTabDelete = new List<TableInfo>();
+    Dictionary<string, DifferentType> procedureDictionary = new Dictionary<string, DifferentType>();
     
     [Parameter]
     public string ProjectName { get; set; }
@@ -102,6 +105,11 @@ public partial class CompareDump
     {
         showTableSelect = true;
     }
+    
+    private void ResetTableListBtn()
+    {
+        ResetTableList();
+    }
 
     private void AddTableList()
     {
@@ -158,6 +166,8 @@ public partial class CompareDump
         showTableSelect = false;
         doCompare = false;
         compareRow = true;
+        compareAllTables = false;
+        compareAllSP = false;
         doDump = false;
         isLoading = false;
         isDumpLoading = false;
@@ -167,6 +177,7 @@ public partial class CompareDump
         tableToAdd = "";
         tableList = new List<TableInfo>();
         tableListForTabDelete = new List<TableInfo>();
+        selectedServerNames = new List<string>();
     }
 
     private async Task StartCompareBtnAsync()
@@ -179,7 +190,10 @@ public partial class CompareDump
         foreach (var key in serverCheckedDictionary.Keys)
         {
             if (serverCheckedDictionary[key])
+            {
                 servers.Add(ServerInfo.Instance.ConnectionStrings[ProjectName][key]);
+                selectedServerNames.Add(key);
+            }
         }
 
         isLoading = true;
@@ -187,9 +201,11 @@ public partial class CompareDump
         if (database == string.Empty)
             database = ServerInfo.Instance.Databases[ProjectName][0];
         
-        var compareResult = await CompareManager.CompareAsync(servers, database, tableList, compareRow, compareAllTables);
-        tableList = compareResult;
-        tableListForTabDelete = compareResult.Select(e => e).ToList();
+        var compareResult = await CompareManager.CompareAsync(servers, database, tableList, compareRow, compareAllTables, compareAllSP);
+        tableList = compareResult.TableInfo;
+        procedureDictionary = compareResult.ProcedureInfo;
+        
+        tableListForTabDelete = tableList.Select(e => e).ToList();
         
         doCompare = true;
         isLoading = false;
@@ -217,7 +233,7 @@ public partial class CompareDump
         if (database == string.Empty)
             database = ServerInfo.Instance.Databases[ProjectName][0];
         
-        await DumpManager.DumpAsync(database, server, tableList.Where(e => e.IsDifferent).Select(e => e.TableName).ToList(), database == "HomerunClashConst");
+        await DumpManager.DumpAsync(database, server, tableList.Where(e => e.IsDifferent).Select(e => e.TableName).ToList(), compareRow, compareAllSP);
         
         isDumpLoading = false;
         finishedDump = true;

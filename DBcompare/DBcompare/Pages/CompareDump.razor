@@ -28,9 +28,16 @@
                         <ChildContent>
                             @if (tableInfo.DifferentType == DifferentType.TableNotExist)
                             {
-                                <br><br>
-                                <h5>Table Not Exist</h5>
                                 <h5>@tableInfo.TableName</h5>
+                                <br><br>
+                                @if (!tableInfo.IsTable1Exist)
+                                {
+                                    <h5>Table Not Exist in @selectedServerNames.First()</h5>
+                                }
+                                else
+                                {
+                                    <h5>Table Not Exist in @selectedServerNames.Last()</h5>
+                                }
                             }
                             @if (tableInfo.DifferentType == DifferentType.ColumnDifferent)
                             {
@@ -243,6 +250,7 @@
             <h3><span style="color: blue; font-weight: bold;">Step3)</span> 비교할 테이블을 입력하세요.</h3>
             <MatCheckbox @bind-Value="@compareRow" Label="Row 데이터 비교"></MatCheckbox>
             <MatCheckbox @bind-Value="@compareAllTables" Label="모든 테이블 비교"></MatCheckbox>
+            <MatCheckbox @bind-Value="@compareAllSP" Label="모든 프로시져 비교"></MatCheckbox>
         </div>
     </div>
     <div>
@@ -251,6 +259,7 @@
             <input type="text" size="30" @bind="@tableToAdd">
             <button type="submit" class="btn btn-primary" style="width: 80px" @onclick="AddTableList">추가</button>
         }
+        <button type="submit" class="btn btn-danger" style="width: 80px" @onclick="ResetTableListBtn">Reset</button>
     </div>
     
     @if (!isLoading)
@@ -258,11 +267,11 @@
         @foreach (var tableToAdd in tableList)
         {
             <div style="display: flex;">
-                <h5 id="Text1Style">@tableToAdd.TableName </h5>
                 @if (doCompare)
                 {
                     if (tableToAdd.IsDifferent)
                     {
+                        <h5 id="Text1Style">@tableToAdd.TableName </h5>
                         <MatIcon class="mat-icon-error">error</MatIcon>
                         if (tableToAdd.DifferentType == DifferentType.TableNotExist)
                         {
@@ -279,7 +288,38 @@
                     }
                     else
                     {
-                        <MatIcon class="mat-icon-confirm">check</MatIcon>
+                        if (!compareAllTables)
+                        {
+                            <h5 id="Text1Style">@tableToAdd.TableName </h5>
+                            <MatIcon class="mat-icon-confirm">check</MatIcon>
+                        }
+                    }
+                }
+                else
+                {
+                    <h5 id="Text1Style">@tableToAdd.TableName </h5>
+                }
+            </div>
+        }
+        
+        @foreach (var procedureName in procedureDictionary.Keys)
+        {
+            <div style="display: flex;">
+                @if (doCompare && compareAllSP)
+                {
+                    <h5 id="Text1Style">@procedureName </h5>
+                    <MatIcon class="mat-icon-error">error</MatIcon>
+                    @if (procedureDictionary[procedureName] == DifferentType.ProcedureNotExistTable2)
+                    {
+                        <h>Procedure Not Exist in @selectedServerNames[1]</h>
+                    }
+                    @if (procedureDictionary[procedureName] == DifferentType.ProcedureNotExistTable1)
+                    {
+                        <h>Procedure Not Exist in @selectedServerNames[0]</h>
+                    }
+                    @if (procedureDictionary[procedureName] == DifferentType.ProcedureDifferent)
+                    {
+                        <h>Procedure Different</h>
                     }
                 }
             </div>
@@ -290,7 +330,7 @@
         <MatProgressCircle Indeterminate="true" Size="MatProgressCircleSize.Large" />
     }
     
-    @if (tableList.Count > 0 || compareAllTables)
+    @if (tableList.Count > 0 || compareAllTables || compareAllSP)
     {
         <div>
             <button type="submit" class="btn btn-success" @onclick="@(e => StartCompareBtnAsync())">비교하기</button>

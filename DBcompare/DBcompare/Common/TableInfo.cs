@@ -10,6 +10,9 @@ public class TableInfo
     public DifferentType DifferentType = DifferentType.None;
     public List<string> PrimaryKeys = new List<string>();
     
+    public bool IsTable1Exist = true;
+    public bool IsTable2Exist = true;
+    
     // 다를경우에 추가해주기, 같으면 기존 컬럼 전부 추가
     public List<string>[] Columns = new List<string>[2];
     

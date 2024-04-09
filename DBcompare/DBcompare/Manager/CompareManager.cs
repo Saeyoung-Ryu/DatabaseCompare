@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.RegularExpressions;
 using Dapper;
 using DBcompare.Common;
 using Enum;
@@ -18,8 +19,10 @@ public class CompareManager
 #pragma warning disable CS8620    
 #pragma warning disable CS8625    
     
-    public static async Task<List<TableInfo>> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow, bool compareAllTables)
+    public static async Task<(List<TableInfo> TableInfo, Dictionary<string, DifferentType> ProcedureInfo)> CompareAsync(List<string> servers, string databaseName, List<TableInfo> tableInfos, bool checkRow, bool compareAllTables, bool compareSP)
     {
+        Dictionary<string, DifferentType> procedureDifferentTypes = new Dictionary<string, DifferentType>();
+        
         string server1 = servers[0];
         string server2 = servers[1];
         
@@ -27,7 +30,7 @@ public class CompareManager
         var connectionInfo2 = await DBConnectionInfo.GetConnectionInfoAsync(server2, databaseName);
         
         if (connectionInfo1 == null || connectionInfo2 == null)
-            return new List<TableInfo>();
+            return (new List<TableInfo>(), procedureDifferentTypes);
         
         try
         {
@@ -71,6 +74,12 @@ public class CompareManager
                         connection2);
                     SetDifferentTablesAfterCompare(tableInfos, tableNamesWithDifferentData);
                 }
+                
+                // check STORED PROCEDURE
+                if (compareSP)
+                {
+                    procedureDifferentTypes = await CompareSpAsync(connection1, connection2);
+                }
 
                 DateTime time = DateTime.Now;
                 using (MySqlConnection connection = new MySqlConnection(DumpInfo.Instance.LogSaveServerAddress))
@@ -88,13 +97,13 @@ public class CompareManager
                                 $" VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray1[0]}', '{connArray2[0]}', '{tableInfo.TableName}', '{isDifferent}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
                         }
                     }
-                    catch (MySqlConnector.MySqlException)
+                    catch (MySqlException)
                     {
                         Console.WriteLine("Failed to connect to database. Check if table `compareLog` exists.");
                     }
                 }
 
-                return tableInfos;
+                return (tableInfos, procedureDifferentTypes);
             }
         }
         catch (Exception e)
@@ -143,6 +152,86 @@ public class CompareManager
         
         return tableNames;
     }
+
+    private static async Task<Dictionary<string, DifferentType>> CompareSpAsync(MySqlConnection connection1, MySqlConnection connection2)
+    {
+        Dictionary<string, DifferentType> dictionary = new Dictionary<string, DifferentType>();
+        
+        var connection1ProcedureDic = await GetStoredProceduresDicAsync(connection1);
+        var connection2ProcedureDic = await GetStoredProceduresDicAsync(connection2);
+        
+        var keyListInfos = GetKeyListInfos(connection1ProcedureDic.Keys.ToList(), connection2ProcedureDic.Keys.ToList());
+        
+        if (keyListInfos.Table1UniqueKeys.Count > 0)
+        {
+            foreach (var key in keyListInfos.Table1UniqueKeys)
+            {
+                dictionary.Add(key, DifferentType.ProcedureNotExistTable2);
+            }
+        }
+        
+        if (keyListInfos.Table2UniqueKeys.Count > 0)
+        {
+            foreach (var key in keyListInfos.Table2UniqueKeys)
+            {
+                dictionary.Add(key, DifferentType.ProcedureNotExistTable1);
+            }
+        }
+        
+        if (keyListInfos.DuplicatedKeys.Count > 0)
+        {
+            foreach (var key in keyListInfos.DuplicatedKeys)
+            {
+                if (connection1ProcedureDic[key].Definition != connection2ProcedureDic[key].Definition)
+                {
+                    dictionary.Add(key, DifferentType.ProcedureDifferent);
+                }
+            }
+        }
+
+        return dictionary;
+    }
+    
+    private static async Task<Dictionary<string, ProcedureInfo>> GetStoredProceduresDicAsync(MySqlConnection connection)
+    {
+        Dictionary<string, ProcedureInfo> proceduresDic = new Dictionary<string, ProcedureInfo>();
+
+        string query =
+            $"SELECT ROUTINE_NAME, ROUTINE_DEFINITION FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_TYPE = 'PROCEDURE' AND ROUTINE_SCHEMA = '{connection.Database}';";
+
+        MySqlCommand command = new MySqlCommand(query, connection);
+
+        try
+        {
+            using (MySqlDataReader reader = command.ExecuteReader())
+            {
+                while (await reader.ReadAsync())
+                {
+                    string procedureName = reader.GetString("ROUTINE_NAME");
+                    string procedureDefinition = PreprocessProcedureDefinition(reader.GetString("ROUTINE_DEFINITION"));
+                    
+                    proceduresDic.Add(procedureName, new ProcedureInfo { Definition = procedureDefinition });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error: " + ex.Message);
+        }
+
+        return proceduresDic;
+    }
+
+    static string PreprocessProcedureDefinition(string definition)
+    {
+        // Remove all whitespace characters
+        definition = Regex.Replace(definition, @"\s+", "");
+
+        // Convert all letters to lowercase
+        definition = definition.ToLower();
+
+        return definition;
+    }
     
     private static void SetDifferentTablesAfterCompare(List<TableInfo> tableInfos, List<string> differentTables, DifferentType differentType = DifferentType.None)
     {
@@ -168,21 +257,21 @@ public class CompareManager
     {
         var tableNames = tableInfos.Select(e => e.TableName).ToList();
 
-        var server1MissingTable = await TableExistsAsync(connection1, tableNames);
-        var server2MissingTable = await TableExistsAsync(connection2, tableNames);
+        var server1MissingTable = await TableExistsAsync(connection1, tableInfos, 1);
+        var server2MissingTable = await TableExistsAsync(connection2, tableInfos, 2);
 
         var combinedList = server1MissingTable.Union(server2MissingTable).ToList();
                 
         return combinedList;
     }
     
-    private static async Task<List<string>> TableExistsAsync(MySqlConnection connection, List<string> tableNames)
+    private static async Task<List<string>> TableExistsAsync(MySqlConnection connection, List<TableInfo> tableInfos, int connectionOrder)
     {
         List<string> missingTables = new List<string>();
 
-        foreach (string tableName in tableNames)
+        foreach (var tableInfo in tableInfos)
         {
-            string query = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{connection.Database}' AND table_name = '{tableName}'";
+            string query = $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '{connection.Database}' AND table_name = '{tableInfo.TableName}'";
 
             using (MySqlCommand command = new MySqlCommand(query, connection))
             {
@@ -193,7 +282,12 @@ public class CompareManager
                 long count = (long)result;
                 if (count == 0)
                 {
-                    missingTables.Add(tableName);
+                    missingTables.Add(tableInfo.TableName);
+                    
+                    if (connectionOrder == 1)
+                        tableInfo.IsTable1Exist = false;
+                    else if (connectionOrder == 2)
+                        tableInfo.IsTable2Exist = false;
                 }
             }
         }

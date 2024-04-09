@@ -7,7 +7,7 @@ namespace DBcompare.Manager;
 
 public class DumpManager
 {
-    public static async Task DumpAsync(string databaseName, string server, List<string> tableNames, bool isConst = true)
+    public static async Task DumpAsync(string databaseName, string server, List<string> tableNames, bool compareRow = true, bool ExportProcedures = false)
     {
         string conn = (await DBConnectionInfo.GetConnectionInfoAsync(server, databaseName)).ConnectionString;
         
@@ -27,8 +27,8 @@ public class DumpManager
                             mb.ExportInfo.EnableComment = true;
                             mb.ExportInfo.ExportEvents = false;
                             mb.ExportInfo.ExportFunctions = false;
-                            mb.ExportInfo.ExportProcedures = false;
-                            mb.ExportInfo.ExportRows = isConst;
+                            mb.ExportInfo.ExportProcedures = ExportProcedures;
+                            mb.ExportInfo.ExportRows = compareRow;
                             mb.ExportInfo.ExportTriggers = false;
                             mb.ExportInfo.ExportViews = false;
                             mb.ExportInfo.AddDropTable = true;
@@ -63,7 +63,7 @@ public class DumpManager
                                         $"INSERT INTO tblDumpLog (`userName`, `connectionString`, `tableName`, `time`) VALUES ('{ServerInfo.Instance.MySqlUserName}', '{connArray[0]}', '{tableName}', '{time.ToString("yyyy-MM-dd HH:mm:ss")}')");
                                 }
                             }
-                            catch (MySqlConnector.MySqlException)
+                            catch (MySqlException)
                             {
                                 Console.WriteLine("Failed to connect to database. Check if table `dumpLog` exists.");
                             }
