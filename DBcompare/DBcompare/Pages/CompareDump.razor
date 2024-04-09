@@ -21,6 +21,9 @@
             <MatTabGroup @bind-ActiveIndex="@tabIndex" Style="width: 1200px">
                 @foreach(var tableInfo in tableListForTabDelete.Where(e => e.IsDifferent))
                 {
+                    @if (tableInfo.DifferentType == DifferentType.TooLargeData)
+                        continue;
+                    
                     <MatTab Label="@tableInfo.TableName">
                         <LabelContent>
                             @tableInfo.TableName <MatIconButton Icon="@MatIconNames.Close" OnClick="@(_ => CloseTab(tableInfo))"></MatIconButton>
@@ -284,6 +287,10 @@
                         if (tableToAdd.DifferentType == DifferentType.DataDifferentWithIndex || tableToAdd.DifferentType == DifferentType.DataDifferentWithoutIndex)
                         {
                             <h>Data is different</h>
+                        }
+                        if (tableToAdd.DifferentType == DifferentType.TooLargeData)
+                        {
+                            <h>Too Many Data</h>
                         }
                     }
                     else

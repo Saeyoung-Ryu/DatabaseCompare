@@ -239,6 +239,9 @@ public class CompareManager
         {
             foreach (var tableInfo in tableInfos)
             {
+                if (tableInfo.DifferentType == DifferentType.TooLargeData)
+                    continue;
+                
                 if(tableInfo.TableName == differentTable)
                 {
                     Console.WriteLine($"Different Table: {differentTable}");
@@ -438,12 +441,23 @@ public class CompareManager
     
     private static async Task<List<string>> CompareTableDataAsync(List<TableInfo> tableInfos, MySqlConnection connection1, MySqlConnection connection2)
     {
-        // var tableNames = tableInfos.Select(e => e.tableName).ToList();
+        // 데이터가 너무 많으면(GameDB) Skip
+        foreach (var tableInfo in tableInfos)
+        {
+            if (await IsRowCountTooLargeAsync(connection1, tableInfo.TableName) || await IsRowCountTooLargeAsync(connection2, tableInfo.TableName))
+            {
+                tableInfo.IsDifferent = true;
+                tableInfo.DifferentType = DifferentType.TooLargeData;
+            }
+        }
 
         List<string> differentTables = new List<string>();
 
         foreach (var tableInfo in tableInfos)
         {
+            if (tableInfo.DifferentType == DifferentType.TooLargeData)
+                continue;
+            
             var tableDictionaryServer1 = GetTableDataDictionary(connection1, tableInfo.TableName, tableInfo);
             var tableDictionaryServer2 = GetTableDataDictionary(connection2, tableInfo.TableName, tableInfo);
 
@@ -503,6 +517,20 @@ public class CompareManager
                 await Task.Run(() => adapter.Fill(dataTable));
                 return dataTable;
             }
+        }
+    }
+    
+    private static async Task<bool> IsRowCountTooLargeAsync(MySqlConnection connection, string tableName)
+    {
+        try
+        {
+            var rowCount = await connection.QuerySingleAsync<int>("select count(*) from " + tableName);
+            return rowCount > 10000;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return true;
         }
     }
     

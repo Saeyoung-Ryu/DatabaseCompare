@@ -11,5 +11,6 @@ public enum DifferentType
     ProcedureNotExistTable1 = 6,
     ProcedureNotExistTable2 = 7,
     ProcedureDifferent = 8,
+    TooLargeData = 9,
     End
 }
